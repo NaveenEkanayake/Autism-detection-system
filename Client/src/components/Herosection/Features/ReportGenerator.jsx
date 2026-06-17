@@ -5,7 +5,7 @@ import { SEVERITY_LEVELS } from "./constants";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-const ReportGenerator = () => {
+function ReportGenerator() {
   const [severityLevel, setSeverityLevel] = useState(2);
   const [reportRef, setReportRef] = useState(null);
 
@@ -205,6 +205,6 @@ const ReportGenerator = () => {
       </div>
     </motion.div>
   );
-};
+}
 
 export default ReportGenerator;

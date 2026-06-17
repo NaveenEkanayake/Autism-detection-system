@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { useSlideAnimation } from "./UseSlideAnimation";
 import { ABOUT_SLIDES } from "./Constants";
 
-export const AboutUs = ({ embedded = false, onTimelineReady }) => {
+function AboutUs({ embedded = false, onTimelineReady }) {
   const containerRef = useRef(null);
   const panelRef = useRef(null);
   const headerRef = useRef(null);
@@ -136,6 +136,6 @@ export const AboutUs = ({ embedded = false, onTimelineReady }) => {
       </div>
     </div>
   );
-};
+}
 
 export default AboutUs;

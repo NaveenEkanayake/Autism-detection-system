@@ -39,7 +39,7 @@ function DisplayCard({
 }
 
 // ── MAIN EXPORT: FEATURES SHADER CARDS VIEWPORT OVERLAY ──
-export default function FeaturesCards({ 
+function FeaturesCards({ 
   headerRef, 
   featuresRef, 
   sectionRef,
@@ -160,3 +160,5 @@ export default function FeaturesCards({
     </div>
   );
 }
+
+export default FeaturesCards;

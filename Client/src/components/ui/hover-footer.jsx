@@ -96,7 +96,7 @@ function FooterBackgroundGradient() {
   );
 }
 
-export default function HoverFooter() {
+function HoverFooter() {
   const footerLinks = [
     {
       title: "About Us",
@@ -200,3 +200,5 @@ export default function HoverFooter() {
     </footer>
   );
 }
+
+export default HoverFooter;

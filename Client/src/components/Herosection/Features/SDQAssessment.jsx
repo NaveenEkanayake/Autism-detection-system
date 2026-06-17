@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, CheckCircle2 } from "lucide-react";
 import { SDQ_QUESTIONS } from "./constants";
 
-const SDQAssessment = () => {
+function SDQAssessment() {
   const [expandedCategory, setExpandedCategory] = useState(null);
   const [responses, setResponses] = useState({});
   const [completed, setCompleted] = useState(false);
@@ -145,6 +145,6 @@ const SDQAssessment = () => {
       </div>
     </motion.div>
   );
-};
+}
 
 export default SDQAssessment;

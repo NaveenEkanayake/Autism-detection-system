@@ -77,7 +77,7 @@ function getShaderConfig(index) {
   return configs[index % configs.length];
 }
 
-export default function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, setShowBg }) {
+function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, setShowBg }) {
   useEffect(() => {
     if (!sectionRef?.current) return;
 
@@ -184,3 +184,5 @@ export default function FeaturesCards({ headerRef, featuresRef, sectionRef, setA
     </section>
   );
 }
+
+export default FeaturesCards;

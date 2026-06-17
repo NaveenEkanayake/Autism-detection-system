@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Brain, TrendingUp, Activity } from "lucide-react";
 import { AI_MODELS } from "./constants";
 
-const AIDetection = () => {
+function AIDetection() {
   const [hoveredModel, setHoveredModel] = useState(null);
 
   const containerVariants = {
@@ -122,6 +122,6 @@ const AIDetection = () => {
       </div>
     </motion.div>
   );
-};
+}
 
 export default AIDetection;

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Calendar, Plus, TrendingUp } from "lucide-react";
 import { HEALTH_TRACKER_ITEMS } from "./constants";
 
-const HealthTracker = () => {
+function HealthTracker() {
   const [selectedTracker, setSelectedTracker] = useState("milestones");
   const [logs, setLogs] = useState({});
 
@@ -157,6 +157,6 @@ const HealthTracker = () => {
       </div>
     </motion.div>
   );
-};
+}
 
 export default HealthTracker;
