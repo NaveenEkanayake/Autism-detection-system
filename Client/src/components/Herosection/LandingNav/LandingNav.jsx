@@ -33,6 +33,15 @@ function LandingNav({ activeSection = 0 }) {
     { id: 2, label: "Features", href: "#features" },
   ];
 
+  const scrollToSection = (e, href) => {
+    e.preventDefault();
+    const el = document.querySelector(href);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+    setMobileOpen(false);
+  };
+
   return (
     <>
       {/* Desktop Nav */}
@@ -40,7 +49,7 @@ function LandingNav({ activeSection = 0 }) {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <a href="#hero-section" className="flex items-center gap-2 text-white">
+            <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className="flex items-center gap-2 text-white">
               <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
                 <Brain className="size-5" strokeWidth={2} />
               </div>
@@ -58,6 +67,7 @@ function LandingNav({ activeSection = 0 }) {
                   <React.Fragment key={link.id}>
                     <a
                       href={link.href}
+                      onClick={(e) => scrollToSection(e, link.href)}
                       className={`relative text-[11px] font-bold tracking-widest uppercase transition-all duration-500 px-3 py-1.5 rounded-lg ${
                         isActive
                           ? "text-blue-400 bg-blue-500/10"
@@ -85,7 +95,7 @@ function LandingNav({ activeSection = 0 }) {
       {/* Mobile Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 md:hidden">
         <div className="flex items-center justify-between px-4 h-14">
-          <a href="#hero-section" className="flex items-center gap-2 text-white">
+          <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className="flex items-center gap-2 text-white">
             <div className="p-1 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
               <Brain className="size-4" strokeWidth={2} />
             </div>
@@ -121,6 +131,7 @@ function LandingNav({ activeSection = 0 }) {
                   <motion.a
                     key={link.id}
                     href={link.href}
+                    onClick={(e) => scrollToSection(e, link.href)}
                     className={`text-base font-bold tracking-[0.2em] uppercase transition-all duration-300 px-6 py-2.5 rounded-xl ${
                       isActive
                         ? "text-blue-400 bg-blue-500/10 border border-blue-500/20"
@@ -130,7 +141,6 @@ function LandingNav({ activeSection = 0 }) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -30 }}
                     transition={{ delay: i * 0.08, duration: 0.3 }}
-                    onClick={() => setMobileOpen(false)}
                   >
                     {link.label}
                   </motion.a>

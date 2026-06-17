@@ -5,7 +5,6 @@ import DiagnosticMockup from "../PhoneText/DiagnosticMockup";
 import AnimatedText from "../AnimatedShinyText/AnimatedShinyText";
 import AboutUs from "../Aboutus/Aboutus";
 import { ABOUT_SLIDES } from "../Aboutus/Constants";
-import Background from "../../3DBackground/Background";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -59,9 +58,11 @@ const INJECTED_STYLES = `
 
 function AutismScreeningHero({
   cardHeading = "Intelligent Risk Assessment Engine",
-  cardDescription = "Aura Track utilizes an automated multi-modal screening pipeline specifically calibrated for early pediatric cohorts aged 3 to 5 years. By combining computer vision head-eye telemetry and facial configuration indexing with standardized parent-led Strengths and Difficulties Questionnaires (SDQ), the system aggregates cross-functional metrics to generate high-precision diagnostic biomarkers.",
+  cardDescription = "Aura Track utilizes an automated multi-modal screening pipeline specifically calibrated for early pediatric cohorts aged 3 to 5 years...",
   metricValue = 94.8,
   metricLabel = "Model Sensitivity Index (%)",
+  setActiveSection, // Hooked state setter
+  setShowBg         // Hooked state setter
 }) {
   const containerRef = useRef(null);
   const mainCardRef = useRef(null);
@@ -126,9 +127,7 @@ function AutismScreeningHero({
         .to(".text-track", { duration: 1.5, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", ease: "expo.out" })
         .to(".text-days", { duration: 1.2, clipPath: "inset(0 0% 0 0)", ease: "power4.inOut" }, "-=0.8");
 
-      /* ── Master Scroll Timeline ──
-         Total pin: hero phase + carousel phase + features phase
-         All animations run in one fluid scroll system. */
+      /* ── Master Scroll Timeline ── */
       const scrollTl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
@@ -139,6 +138,19 @@ function AutismScreeningHero({
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
+            const progress = self.progress;
+
+            // ── COORDINATING UNIFIED BACKGROUND STATES ACCORDING TO TIMELINE REACH ──
+            if (progress < 0.38) {
+              // Phase 0: Pinned Dashboard Mockup active
+              setActiveSection?.(0);
+              setShowBg?.(false);
+            } else if (progress >= 0.38 && progress < 0.95) {
+              // Phase 1: Carousel Slides active -> Trigger 3D Backdrop Viewport
+              setActiveSection?.(1);
+              setShowBg?.(true);
+            }
+
             const tl = carouselTlRef.current;
             if (!tl) return;
             const tlDuration = tl.duration();
@@ -146,11 +158,15 @@ function AutismScreeningHero({
 
             const totalDuration = self.animation.duration();
             const carouselStartTime = totalDuration - tlDuration;
-            const currentTime = self.progress * totalDuration;
+            const currentTime = progress * totalDuration;
             const carouselProgress = Math.max(0, Math.min(1,
               (currentTime - carouselStartTime) / tlDuration
             ));
             tl.progress(carouselProgress);
+            const aboutEl = document.getElementById("about");
+            if (aboutEl) {
+              aboutEl.dataset.aboutActive = String(carouselProgress > 0);
+            }
           },
         },
       });
@@ -171,7 +187,7 @@ function AutismScreeningHero({
         .fromTo(".card-left-text", { x: -40, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "power4.out", duration: 1.5 }, "-=1.5")
         .fromTo(".card-right-text", { x: 40, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "expo.out", duration: 1.5 }, "<")
 
-        /* ── Hold: let user observe the dashboard ── */
+        /* ── Hold ── */
         .to({}, { duration: 2 })
 
         /* ── Phase B: Exit hero content, reveal carousel ── */
@@ -188,38 +204,36 @@ function AutismScreeningHero({
           y: 0, autoAlpha: 1, ease: "power3.out", duration: 2.5,
         }, "-=1.5")
 
-        /* ── Phase D: Hold for carousel internal timeline ── */
+        /* ── Phase D & E: Holds ── */
         .to({}, { duration: CAROUSEL_SLIDES * 2 + 3 })
-
-        /* ── Phase E: Extended hold - carousel stays visible ── */
         .to({}, { duration: 3 });
 
     }, containerRef);
 
     return () => ctx.revert();
-  }, [metricValue]);
+  }, [metricValue, setActiveSection, setShowBg]);
 
   return (
     <div
       id="hero-section"
       ref={containerRef}
-      className="relative w-screen overflow-hidden bg-neutral-950 text-white font-sans antialiased"
+      className="relative w-full overflow-hidden bg-transparent text-white font-sans antialiased"
       style={{ perspective: "1500px" }}
     >
       <style dangerouslySetInnerHTML={{ __html: INJECTED_STYLES }} />
       <div className="film-grain" aria-hidden="true" />
 
-      {/* ── HERO SECTION ── */}
-      <div className="relative w-screen h-screen overflow-hidden" style={{ perspective: "1500px" }}>
+      {/* ── HERO VIEWPORT PLANE ── */}
+      <div className="relative w-full h-screen overflow-hidden" style={{ perspective: "1500px" }}>
         <div className="hero-text-wrapper absolute z-10 inset-0 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform">
           <div className="text-track gsap-reveal">
             <AnimatedText
               text="Advanced Pediatric Tracking"
-              textClassName="text-[2rem] sm:text-[3rem] md:text-[3.5rem] lg:text-[4.5rem] font-bold tracking-tight text-white drop-shadow-md py-2"
+              textClassName="text-[1.4rem] sm:text-[2rem] md:text-[3rem] lg:text-[4.5rem] font-bold tracking-tight text-white drop-shadow-md py-2"
               gradientColors="linear-gradient(90deg, #4b5563, #ffffff, #4b5563)"
             />
           </div>
-          <div className="text-days gsap-reveal mt-[-20px]">
+          <div className="text-days gsap-reveal mt-[-10px] md:mt-[-20px]">
             <AnimatedText
               text="AURA TRACK ENGINE"
               textClassName="text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] font-black tracking-tighter"
@@ -244,9 +258,9 @@ function AutismScreeningHero({
         </div>
       </div>
 
-      {/* ── ABOUT SECTION ── */}
-      <div id="about" className="about-carousel-wrapper absolute inset-0 z-30" style={{ visibility: "hidden" }}>
-        <Background />
+      {/* ── ABOUT SECTION VIEWPORT PLANE ── */}
+      {/* Stripped inline visibility styles to let autoAlpha process properly */}
+      <div id="about" className="about-carousel-wrapper absolute inset-0 z-30 bg-transparent">
         <AboutUs embedded onTimelineReady={handleTimelineReady} />
       </div>
     </div>

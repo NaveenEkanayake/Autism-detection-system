@@ -1,6 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Warp } from "@paper-design/shaders-react";
 import { Sparkles, Zap, Puzzle, Palette, Smartphone, Cpu } from "lucide-react";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 const features = [
   {
@@ -40,7 +46,7 @@ function getShaderConfig(index) {
     {
       proportion: 0.3, softness: 0.8, distortion: 0.15, swirl: 0.6,
       swirlIterations: 8, shape: "checks", shapeScale: 0.08,
-      colors: ["hsl(280, 100%, 30%)", "hsl(320, 100%, 60%)", "hsl(340, 90%, 40%)", "hsl(300, 100%, 70%)"],
+      colors: ["all(280, 100%, 30%)", "hsl(320, 100%, 60%)", "hsl(340, 90%, 40%)", "hsl(300, 100%, 70%)"],
     },
     {
       proportion: 0.4, softness: 1.2, distortion: 0.2, swirl: 0.9,
@@ -71,9 +77,53 @@ function getShaderConfig(index) {
   return configs[index % configs.length];
 }
 
-export default function FeaturesCards({ headerRef, featuresRef }) {
+export default function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, setShowBg }) {
+  useEffect(() => {
+    if (!sectionRef?.current) return;
+
+    const ctx = gsap.context(() => {
+      gsap.set(headerRef.current, { y: 60, opacity: 0 });
+
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: "top 80%",
+          end: "top 20%",
+          scrub: 2,
+          onEnter: () => { setActiveSection?.(2); setShowBg?.(true); },
+          onEnterBack: () => { setActiveSection?.(2); setShowBg?.(true); },
+          onLeaveBack: () => { setActiveSection?.(1); }
+        },
+      });
+
+      tl.to(headerRef.current, {
+        y: 0, opacity: 1, duration: 2, ease: "expo.out",
+      });
+
+      gsap.fromTo(
+        ".feature-card",
+        { y: 80, opacity: 0, scale: 0.93 },
+        {
+          y: 0, opacity: 1, scale: 1,
+          duration: 2, stagger: 0.15, ease: "expo.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 70%",
+            end: "bottom bottom",
+            scrub: 2,
+            onLeave: () => setShowBg?.(false), // Ensures the canvas unmounts clearly before footer
+            onEnterBack: () => setShowBg?.(true)
+          },
+        }
+      );
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [headerRef, sectionRef, setActiveSection, setShowBg]);
+
   return (
-    <section className="min-h-screen py-16 md:py-20 px-4 bg-neutral-950">
+    /* FIXED BELOW: Stripped bg-neutral-950 out completely to reveal global background layers */
+    <section className="min-h-screen py-16 md:py-20 px-4 bg-transparent">
       <div className="max-w-7xl mx-auto">
         <div ref={headerRef} className="text-center mb-12 md:mb-16">
           <span className="inline-block text-xs uppercase font-bold tracking-widest text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20 mb-6">
@@ -112,7 +162,8 @@ export default function FeaturesCards({ headerRef, featuresRef }) {
                   />
                 </div>
 
-                <div className="relative z-10 p-6 md:p-8 rounded-3xl h-full flex flex-col bg-black/70 backdrop-blur-sm border border-white/10 group-hover:bg-black/60 transition-all duration-500">
+                {/* MODIFIED: Used bg-black/50 translucent overlay instead of solid colors to preserve vector clarity */}
+                <div className="relative z-10 p-6 md:p-8 rounded-3xl h-full flex flex-col bg-black/50 backdrop-blur-sm border border-white/10 group-hover:bg-black/40 transition-all duration-500">
                   <div className="mb-4 md:mb-6">{feature.icon}</div>
                   <h3 className="text-xl md:text-2xl font-bold mb-3 text-white">{feature.title}</h3>
                   <p className="text-sm md:text-base leading-relaxed flex-grow text-neutral-200">

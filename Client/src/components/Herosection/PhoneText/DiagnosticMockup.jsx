@@ -11,7 +11,7 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
 
       {/* 2. DEVICE SKEUOMORPHIC CANVAS LAYERS */}
       <div className="mockup-scroll-wrapper order-2 lg:order-2 relative w-full h-[380px] lg:h-[600px] flex items-center justify-center z-10" style={{ perspective: "1000px" }}>
-        <div className="relative w-full h-full flex items-center justify-center transform scale-[0.65] md:scale-85 lg:scale-100">
+        <div className="relative w-full h-full flex items-center justify-center transform scale-[0.75] md:scale-85 lg:scale-100">
           
           <div ref={mockupRef} className="relative w-[280px] h-[580px] rounded-[3rem] iphone-bezel flex flex-col will-change-transform transform-style-3d">
             <div className="absolute top-[120px] -left-[3px] w-[3px] h-[25px] hardware-btn rounded-l-md" aria-hidden="true" />
@@ -72,7 +72,7 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
             </div>
           </div>
 
-          <div className="floating-badge absolute flex top-14 left-[-75px] floating-ui-badge rounded-xl p-3.5 items-center gap-3 z-30">
+          <div className="floating-badge absolute hidden md:flex top-14 left-[-75px] floating-ui-badge rounded-xl p-3.5 items-center gap-3 z-30">
             <div className="w-9 h-9 rounded-full bg-blue-500/10 flex items-center justify-center border border-blue-400/20">
               <Camera className="size-4 text-blue-400" />
             </div>
@@ -82,7 +82,7 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
             </div>
           </div>
 
-          <div className="floating-badge absolute flex bottom-24 right-[-75px] floating-ui-badge rounded-xl p-3.5 items-center gap-3 z-30">
+          <div className="floating-badge absolute hidden md:flex bottom-24 right-[-75px] floating-ui-badge rounded-xl p-3.5 items-center gap-3 z-30">
             <div className="w-9 h-9 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-400/20">
               <Brain className="size-4 text-indigo-400" />
             </div>

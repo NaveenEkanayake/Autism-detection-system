@@ -10,11 +10,16 @@ const CAMERA_POSITIONS = [
 /* Spring damper smoothing factor – lower = heavier cinematic lag */
 const SMOOTHING_FACTOR = 0.04;
 
-function Background() {
+function Background({ activeSection = 0 }) {
   const canvasRef = useRef(null);
   const smoothCamera = useRef({ x: 0, y: 30, z: 250, lookY: 0 });
   const targetCamera = useRef({ x: 0, y: 30, z: 250, lookY: 0 });
   const mountRef = useRef({ mountains: [], starField: null });
+  const activeSectionRef = useRef(activeSection);
+
+  useEffect(() => {
+    activeSectionRef.current = activeSection;
+  }, [activeSection]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -178,31 +183,20 @@ function Background() {
       const time = Date.now() * 0.0001;
       const scrollY = window.scrollY || 0;
 
-      /* ── Layer 1: Scroll Normalization (0.0 → 1.0) ── */
-      const docHeight = document.documentElement.scrollHeight;
-      const winHeight = window.innerHeight;
-      const maxScroll = docHeight - winHeight;
-      const progress = maxScroll > 0 ? Math.min(scrollY / maxScroll, 1) : 0;
-
-      /* ── Layer 2: Segmented Camera Position Interpolation ── */
-      const totalSections = CAMERA_POSITIONS.length - 1;
-      const totalProgress = progress * totalSections;
+      /* ── Camera position driven by active section ──
+         Indexes into CAMERA_POSITIONS based on the current section
+         (0=hero, 1=about, 2=features, 3=footer). The spring damper
+         below smoothly interpolates between positions. */
       const sectionIndex = Math.min(
-        Math.floor(totalProgress),
-        totalSections - 1
+        activeSectionRef.current,
+        CAMERA_POSITIONS.length - 1
       );
-      const sectionProgress = totalProgress - sectionIndex; // 0→1 within segment
+      const targetPos = CAMERA_POSITIONS[sectionIndex];
 
-      const from = CAMERA_POSITIONS[sectionIndex];
-      const to = CAMERA_POSITIONS[sectionIndex + 1];
-
-      /* Smooth hermite interpolation for section transitions */
-      const t = sectionProgress * sectionProgress * (3 - 2 * sectionProgress);
-
-      targetCamera.current.x = from.x + (to.x - from.x) * t;
-      targetCamera.current.y = from.y + (to.y - from.y) * t;
-      targetCamera.current.z = from.z + (to.z - from.z) * t;
-      targetCamera.current.lookY = from.lookY + (to.lookY - from.lookY) * t;
+      targetCamera.current.x = targetPos.x;
+      targetCamera.current.y = targetPos.y;
+      targetCamera.current.z = targetPos.z;
+      targetCamera.current.lookY = targetPos.lookY;
 
       /* ── Layer 3: Spring Damper (smooth tracking) ──
          Lower SMOOTHING_FACTOR = heavier, more cinematic lag.

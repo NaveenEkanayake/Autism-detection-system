@@ -13,96 +13,79 @@ if (typeof window !== "undefined") {
 
 function Home() {
   const [activeSection, setActiveSection] = useState(0);
+  const [showBg, setShowBg] = useState(false);
   const sectionRef = useRef(null);
   const headerRef = useRef(null);
   const cardsRef = useRef(null);
 
+  // ── RE-ADDED THE CORE HOME SCROLL SYNC TRIGGER FOR THE FEATURES SECTION ──
   useEffect(() => {
-    const sections = document.querySelectorAll("section[id], div[id]");
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const id = entry.target.id;
-            if (id === "hero-section") setActiveSection(0);
-            else if (id === "about") setActiveSection(1);
-            else if (id === "features") setActiveSection(2);
-          }
-        });
-      },
-      { threshold: 0.15, rootMargin: "-100px 0px -50px 0px" }
-    );
-    sections.forEach((s) => observer.observe(s));
-    return () => observer.disconnect();
-  }, []);
+    if (!sectionRef.current) return;
 
-  useEffect(() => {
     const ctx = gsap.context(() => {
-      gsap.set(".features-bg", { opacity: 0 });
-      gsap.set(headerRef.current, { y: 60, opacity: 0 });
-      gsap.set(cardsRef.current, { y: 80, opacity: 0 });
-
-      gsap.to(".features-bg", {
-        opacity: 1, duration: 2.5, ease: "expo.out",
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 80%",
-          end: "top 15%",
-          scrub: 2,
+      // Create a master scroll milestone tracker explicitly for the Home layout container
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: "top 75%", // Triggers slightly before the section fully enters the viewport
+        end: "bottom 20%",
+        onEnter: () => {
+          setActiveSection(2); // Instantly swap Three.js camera path to index 2
+          setShowBg(true);     // Fade in background canvas opacity
         },
-      });
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: sectionRef.current,
-          start: "top 70%",
-          end: "top 10%",
-          scrub: 2,
+        onEnterBack: () => {
+          setActiveSection(2);
+          setShowBg(true);
         },
-      });
-
-      tl.to(headerRef.current, {
-        y: 0, opacity: 1, duration: 2, ease: "expo.out",
-      }).to(cardsRef.current, {
-        y: 0, opacity: 1, duration: 2.5, ease: "expo.out",
-      }, "-=1");
-
-      gsap.fromTo(
-        ".feature-card",
-        { y: 80, opacity: 0, scale: 0.93 },
-        {
-          y: 0, opacity: 1, scale: 1,
-          duration: 2, stagger: 0.15, ease: "expo.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 60%",
-            end: "bottom bottom",
-            scrub: 2,
-          },
+        onLeaveBack: () => {
+          setActiveSection(1); // Safely drop back to About context when scrolling up
+        },
+        onLeave: () => {
+          setShowBg(false);    // Fade out smoothly right before entering the page footer
         }
-      );
+      });
     }, sectionRef);
 
     return () => ctx.revert();
   }, []);
 
   return (
-    <div className="w-full min-h-screen bg-neutral-950 antialiased selection:bg-blue-500/30 selection:text-blue-200">
-      <div className="relative z-10">
+    /* ── FIXED BELOW: Changed root container background from bg-neutral-950 to bg-transparent ── */
+    <div className="w-full min-h-screen bg-transparent antialiased selection:bg-blue-500/30 selection:text-blue-200">
+      
+      {/* 3D Background Layer */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 ease-out"
+        style={{ opacity: showBg ? 1 : 0 }}
+      >
+        <Background activeSection={activeSection} />
+      </div>
+      
+      {/* Interactive UI Layer */}
+      <div className="relative z-10 bg-transparent">
         <LandingNav activeSection={activeSection} />
-        <AutismScreeningHero />
+        
+        <AutismScreeningHero 
+          setActiveSection={setActiveSection}
+          setShowBg={setShowBg}
+        />
+        
+        {/* Pass state triggers directly down to features */}
         <section
           ref={sectionRef}
           id="features"
-          className="relative bg-neutral-950 w-full min-h-screen overflow-hidden"
+          className="relative bg-transparent w-full min-h-screen overflow-hidden"
         >
-          <div className="features-bg absolute inset-0 pointer-events-none">
-            <Background />
-          </div>
-          <div className="relative z-10">
-            <FeaturesCards headerRef={headerRef} featuresRef={cardsRef} />
+          <div className="relative z-10 bg-transparent">
+            <FeaturesCards 
+              headerRef={headerRef} 
+              featuresRef={cardsRef} 
+              sectionRef={sectionRef} // Safely anchors sub-component references
+              setActiveSection={setActiveSection}
+              setShowBg={setShowBg}
+            />
           </div>
         </section>
+        
         <HoverFooter />
       </div>
     </div>

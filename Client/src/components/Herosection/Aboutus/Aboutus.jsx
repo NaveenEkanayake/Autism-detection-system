@@ -13,7 +13,7 @@ export const AboutUs = ({ embedded = false, onTimelineReady }) => {
   useSlideAnimation(containerRef, headerRef, embedded, onTimelineReady, setActiveIndex);
 
   return (
-    <div ref={containerRef} className={`relative w-screen ${embedded ? "h-full" : "bg-[#030509]"} overflow-hidden font-sans`} style={embedded ? undefined : { height: "100vh" }}>
+    <div ref={containerRef} className={`relative w-full ${embedded ? "h-full" : "bg-[#030509]"} overflow-hidden font-sans`} style={embedded ? undefined : { height: "100vh" }}>
       
       {/* Overlays */}
       {!embedded && (
