@@ -1,6 +1,27 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+
+function CloseIcon() {
+  return (
+    <div className="relative w-5 h-5 flex items-center justify-center">
+      <motion.span
+        className="absolute h-[2px] w-5 bg-neutral-400 rounded-full"
+        animate={{ rotate: 45, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="absolute h-[2px] w-5 bg-neutral-400 rounded-full"
+        animate={{ opacity: 0, x: 10 }}
+        transition={{ duration: 0.2 }}
+      />
+      <motion.span
+        className="absolute h-[2px] w-5 bg-neutral-400 rounded-full"
+        animate={{ rotate: -45, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
 
 function AuthModal({ open, onClose, title, children }) {
   useEffect(() => {
@@ -38,9 +59,10 @@ function AuthModal({ open, onClose, title, children }) {
               <h2 className="text-xl font-bold text-white">{title}</h2>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="relative w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center hover:bg-white/10 transition-colors"
+                aria-label="Close"
               >
-                <X className="size-5" />
+                <CloseIcon />
               </button>
             </div>
 

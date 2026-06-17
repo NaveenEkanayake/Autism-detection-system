@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Brain, Camera, Smile } from "lucide-react";
+import { Brain, Camera } from "lucide-react";
 import AuraWatermark from "./AuraWatermark";
 import FlowButton from "../../ui/flow-button";
 import AuthModal from "../../Auth/AuthModal";
@@ -7,8 +7,7 @@ import SignupForm from "../../Auth/SignupForm";
 import LoginForm from "../../Auth/LoginForm";
 
 function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription }) {
-  const [showSignup, setShowSignup] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
+  const [authMode, setAuthMode] = useState(null);
   return (
     <div className="relative w-full h-full max-w-7xl mx-auto px-4 lg:px-12 flex flex-col justify-evenly lg:grid lg:grid-cols-3 items-center lg:gap-8 z-10 py-6 lg:py-0">
       
@@ -111,17 +110,17 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
         </p>
 
         <div className="flex items-center gap-4 mt-6 justify-center lg:justify-start">
-          <FlowButton text="Get Started" onClick={() => setShowSignup(true)} />
-          <FlowButton text="Login" onClick={() => setShowLogin(true)} />
+          <FlowButton text="Get Started" onClick={() => setAuthMode("signup")} />
+          <FlowButton text="Login" onClick={() => setAuthMode("login")} />
         </div>
       </div>
 
-      <AuthModal open={showSignup} onClose={() => setShowSignup(false)} title="Create Your Account">
-        <SignupForm onSwitchToLogin={() => { setShowSignup(false); setShowLogin(true); }} />
+      <AuthModal open={authMode === "signup"} onClose={() => setAuthMode(null)} title="Create Your Account">
+        <SignupForm onSwitchToLogin={() => setAuthMode("login")} />
       </AuthModal>
 
-      <AuthModal open={showLogin} onClose={() => setShowLogin(false)} title="Welcome Back">
-        <LoginForm onSwitchToSignup={() => { setShowLogin(false); setShowSignup(true); }} />
+      <AuthModal open={authMode === "login"} onClose={() => setAuthMode(null)} title="Welcome Back">
+        <LoginForm onSwitchToSignup={() => setAuthMode("signup")} />
       </AuthModal>
 
     </div>
