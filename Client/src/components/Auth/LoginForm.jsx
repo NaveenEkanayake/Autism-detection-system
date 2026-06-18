@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import GradientButton from "../ui/GradientButton";
 
 function LoginForm({ onSwitchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
@@ -65,12 +66,9 @@ function LoginForm({ onSwitchToSignup }) {
         </button>
       </div>
 
-      <button
-        type="submit"
-        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white font-semibold text-sm hover:opacity-90 transition-opacity active:scale-[0.98]"
-      >
-        Sign In
-      </button>
+      <GradientButton type="submit" disabled={false}>
+        <span className="label">Sign In</span>
+      </GradientButton>
 
       <p className="text-center text-sm text-neutral-500">
         Don&apos;t have an account?{" "}

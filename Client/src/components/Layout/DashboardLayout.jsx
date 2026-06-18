@@ -1,0 +1,239 @@
+import { useState } from "react";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  LayoutDashboard, Brain, Camera, TrendingUp, FileText,
+  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sun
+} from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { usePatients } from "../../hooks/usePatients";
+import { useTheme } from "../../hooks/useTheme";
+import GradientButton from "../ui/GradientButton";
+
+const NAV_ITEMS = [
+  { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
+  { to: "/sdq", icon: Brain, label: "SDQ Assessment" },
+  { to: "/vision", icon: Camera, label: "Vision Analysis" },
+  { to: "/health", icon: TrendingUp, label: "Health Tracker" },
+  { to: "/documents", icon: FileText, label: "Documents" },
+];
+
+const QUICK_STATS = [
+  { label: "SDQ", value: 3, color: "text-blue-400", icon: Brain },
+  { label: "Miles.", value: 8, color: "text-teal-400", icon: CheckCircle },
+  { label: "Growth", value: 5, color: "text-cyan-400", icon: Activity },
+  { label: "Sleep", value: 12, color: "text-indigo-400", icon: Moon },
+];
+
+const SIDEBAR_WIDTH = 280;
+
+function HamburgerIcon({ open }) {
+  return (
+    <div className="relative w-5 h-5 flex items-center justify-center">
+      <motion.span
+        className="absolute h-[2px] w-5 rounded-full"
+        style={{ background: "var(--text-secondary)" }}
+        animate={open ? { rotate: 45, y: 0 } : { rotate: 0, y: -5 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      />
+      <motion.span
+        className="absolute h-[2px] w-5 rounded-full"
+        style={{ background: "var(--text-secondary)" }}
+        animate={open ? { opacity: 0, x: 10 } : { opacity: 1, x: 0 }}
+        transition={{ duration: 0.2 }}
+      />
+      <motion.span
+        className="absolute h-[2px] w-5 rounded-full"
+        style={{ background: "var(--text-secondary)" }}
+        animate={open ? { rotate: -45, y: 0 } : { rotate: 0, y: 5 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
+function Sidebar({ open, onClose }) {
+  const { user, setUser } = useAuth();
+  const { activePatient, getAgeLabel } = usePatients();
+  const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const ageLabel = getAgeLabel(activePatient.dob);
+
+  const handleLogout = () => {
+    setUser(null);
+    navigate("/");
+    onClose();
+  };
+
+  const ThemeIcon = theme === "dark" ? Sun : Moon;
+
+  return (
+    <motion.aside
+      initial={false}
+      animate={{ x: open ? 0 : -SIDEBAR_WIDTH }}
+      transition={{ duration: 0.3, ease: "easeInOut" }}
+      className="fixed top-0 left-0 z-50 h-full flex flex-col border-r"
+      style={{
+        width: SIDEBAR_WIDTH,
+        background: "var(--sidebar-bg)",
+        borderColor: "var(--sidebar-border)",
+      }}
+    >
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
+          <Brain className="size-5 text-white" strokeWidth={2} />
+        </div>
+        <span className="text-sm font-bold tracking-tight">
+          Aura<span className="text-blue-400">Track</span>
+        </span>
+      </div>
+
+      {/* User info */}
+      <div className="px-6 py-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+            {user?.name?.[0]?.toUpperCase() || "U"}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{user?.name || "User"}</p>
+            <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>{user?.email || ""}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Patient */}
+      <div className="mx-4 mt-4 p-3 rounded-xl border" style={{ borderColor: "var(--sidebar-border)", background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}>
+            {activePatient.name[0]}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{activePatient.name}</p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="badge-blue text-[10px] px-1.5 py-0.5">{ageLabel}</span>
+              <span className="badge-teal text-[10px] px-1.5 py-0.5 capitalize">{activePatient.sex}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">
+        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            onClick={onClose}
+            className={({ isActive }) =>
+              "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border " +
+              (isActive
+                ? "border-blue-500/20"
+                : "border-transparent hover:border-blue-500/20")
+            }
+            style={({ isActive }) => ({
+              color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+              background: isActive ? "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))" : "",
+            })}
+            onMouseEnter={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.background = "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))";
+                e.currentTarget.style.color = "var(--text-primary)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isActive) {
+                e.currentTarget.style.background = "";
+                e.currentTarget.style.color = "var(--text-secondary)";
+              }
+            }}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon className={"w-4 h-4 flex-shrink-0 " + (isActive ? "text-blue-400" : "")} />
+                <span className="flex-1">{label}</span>
+                {isActive && <ChevronRight className="w-3.5 h-3.5 text-blue-400" />}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Theme Toggle + Logout */}
+      <div className="px-3 pb-2 pt-3 space-y-1 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+        <GradientButton onClick={toggleTheme} className="flex items-center gap-3 px-4 py-2.5">
+          {theme === "dark" ? <Sun className="w-4 h-4 label" /> : <Moon className="w-4 h-4 label" />}
+          <span className="label flex-1 text-left">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+        </GradientButton>
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full border border-transparent hover:bg-red-500/10 hover:border-red-500/20"
+          style={{ color: "rgba(248,113,113,0.7)" }}
+        >
+          <LogOut className="w-4 h-4 flex-shrink-0" />
+          <span className="flex-1 text-left">Logout</span>
+        </button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="px-4 py-4 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="grid grid-cols-4 gap-1">
+          {QUICK_STATS.map(({ label, value, color, icon: Icon }) => (
+            <div key={label} className="text-center">
+              <Icon className={"w-3.5 h-3.5 mx-auto mb-0.5 " + color} />
+              <p className={"text-xs font-bold " + color}>{value}</p>
+              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.aside>
+  );
+}
+
+export default function DashboardLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen" style={{ background: "var(--page-bg)", color: "var(--text-primary)" }}>
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
+      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+
+      <button
+        onClick={() => setSidebarOpen((p) => !p)}
+        className="fixed top-4 z-[60] w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+        style={{
+          left: sidebarOpen ? "292px" : "16px",
+          background: "var(--card-bg)",
+          borderColor: "var(--card-border)",
+          borderWidth: 1,
+        }}
+        aria-label="Toggle sidebar"
+      >
+        <HamburgerIcon open={sidebarOpen} />
+      </button>
+
+      <div
+        className="transition-all duration-300 ease-in-out"
+        style={{ marginLeft: sidebarOpen ? "280px" : "0px" }}
+      >
+        <div className="pt-4">
+          <Outlet />
+        </div>
+      </div>
+    </div>
+  );
+}
