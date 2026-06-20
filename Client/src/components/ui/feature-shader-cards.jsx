@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Warp } from "@paper-design/shaders-react";
 import { Sparkles, Zap, Puzzle, Palette, Smartphone, Cpu } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -78,6 +79,7 @@ function getShaderConfig(index) {
 }
 
 function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, setShowBg }) {
+  const { theme } = useTheme();
   useEffect(() => {
     if (!sectionRef?.current) return;
 
@@ -111,7 +113,24 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
             start: "top 70%",
             end: "bottom bottom",
             scrub: 2,
-            onLeave: () => setShowBg?.(false), // Ensures the canvas unmounts clearly before footer
+            onLeave: () => setShowBg?.(false),
+            onEnterBack: () => setShowBg?.(true)
+          },
+        }
+      );
+
+      gsap.fromTo(
+        ".feature-card",
+        { y: 80, opacity: 0, scale: 0.93 },
+        {
+          y: 0, opacity: 1, scale: 1,
+          duration: 2, stagger: 0.15, ease: "expo.out",
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: "top 70%",
+            end: "bottom bottom",
+            scrub: 2,
+            onLeave: () => setShowBg?.(false),
             onEnterBack: () => setShowBg?.(true)
           },
         }
@@ -121,21 +140,22 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
     return () => ctx.revert();
   }, [headerRef, sectionRef, setActiveSection, setShowBg]);
 
+  const isDark = theme === "dark";
+
   return (
-    /* FIXED BELOW: Stripped bg-neutral-950 out completely to reveal global background layers */
-    <section className="min-h-screen py-16 md:py-20 px-4 bg-transparent">
+    <section className="min-h-screen py-16 md:py-20 px-4" style={{ backgroundColor: "var(--landing-bg)" }}>
       <div className="max-w-7xl mx-auto">
         <div ref={headerRef} className="text-center mb-12 md:mb-16">
           <span className="inline-block text-xs uppercase font-bold tracking-widest text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20 mb-6">
             Platform Features
           </span>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-6">
+          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6" style={{ color: "var(--landing-text)" }}>
             Everything You Need for{" "}
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               Early Detection
             </span>
           </h2>
-          <p className="text-lg text-neutral-400 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>
             Advanced AI-powered detection, evidence-based assessments, health monitoring, and clinical reporting all in one integrated platform.
           </p>
         </div>
@@ -162,11 +182,13 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
                   />
                 </div>
 
-                {/* MODIFIED: Used bg-black/50 translucent overlay instead of solid colors to preserve vector clarity */}
-                <div className="relative z-10 p-6 md:p-8 rounded-3xl h-full flex flex-col bg-black/50 backdrop-blur-sm border border-white/10 group-hover:bg-black/40 transition-all duration-500">
+                <div className="relative z-10 p-6 md:p-8 rounded-3xl h-full flex flex-col backdrop-blur-sm border transition-all duration-500" style={{ 
+                  backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)", 
+                  borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" 
+                }}>
                   <div className="mb-4 md:mb-6">{feature.icon}</div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-3 text-white">{feature.title}</h3>
-                  <p className="text-sm md:text-base leading-relaxed flex-grow text-neutral-200">
+                  <h3 className="text-xl md:text-2xl font-bold mb-3" style={{ color: "var(--landing-text)" }}>{feature.title}</h3>
+                  <p className="text-sm md:text-base leading-relaxed flex-grow" style={{ color: "var(--landing-text-secondary)" }}>
                     {feature.description}
                   </p>
                   <div className="mt-4 md:mt-6 flex items-center text-sm font-semibold text-blue-400 group-hover:text-blue-300 transition-colors">

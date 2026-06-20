@@ -1,13 +1,22 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Brain, Camera } from "lucide-react";
 import AuraWatermark from "./AuraWatermark";
 import FlowButton from "../../ui/flow-button";
 import AuthModal from "../../Auth/AuthModal";
 import SignupForm from "../../Auth/SignupForm";
 import LoginForm from "../../Auth/LoginForm";
+import { useTheme } from "../../../hooks/useTheme";
 
 function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription }) {
   const [authMode, setAuthMode] = useState(null);
+  const navigate = useNavigate();
+  const { theme } = useTheme();
+
+  const handleAuthSuccess = () => {
+    setAuthMode(null);
+    navigate("/dashboard");
+  };
   return (
     <div className="relative w-full h-full max-w-7xl mx-auto px-4 lg:px-12 flex flex-col justify-evenly lg:grid lg:grid-cols-3 items-center lg:gap-8 z-10 py-6 lg:py-0">
       
@@ -23,10 +32,10 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
             <div className="absolute top-[160px] -left-[3px] w-[3px] h-[45px] hardware-btn rounded-l-md" aria-hidden="true" />
             <div className="absolute top-[220px] -left-[3px] w-[3px] h-[45px] hardware-btn rounded-l-md" aria-hidden="true" />
 
-            <div className="absolute inset-[7px] bg-[#04060c] rounded-[2.5rem] overflow-hidden shadow-[inset_0_0_15px_rgba(0,0,0,1)] text-white z-10">
+            <div className="absolute inset-[7px] rounded-[2.5rem] overflow-hidden shadow-[inset_0_0_15px_rgba(0,0,0,0.2)] z-10" style={{ backgroundColor: "var(--landing-screen)", color: "var(--landing-text)" }}>
               <div className="absolute inset-0 screen-glare z-40 pointer-events-none" aria-hidden="true" />
               
-              <div className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[100px] h-[28px] bg-black rounded-full z-50 flex items-center justify-center px-3">
+              <div className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[100px] h-[28px] rounded-full z-50 flex items-center justify-center px-3" style={{ backgroundColor: "var(--landing-notch)" }}>
                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.9)] animate-pulse mr-2" />
                 <span className="text-[7px] text-neutral-400 font-bold uppercase tracking-widest">Vision Cam</span>
               </div>
@@ -82,8 +91,8 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
               <Camera className="size-4 text-blue-400" />
             </div>
             <div>
-              <p className="text-white text-[11px] font-bold tracking-tight">Image Detection</p>
-              <p className="text-blue-200/40 text-[9px] font-medium">Autism pattern recognition</p>
+              <p className="text-[11px] font-bold tracking-tight" style={{ color: "var(--landing-text)" }}>Image Detection</p>
+              <p className="text-[9px] font-medium" style={{ color: "var(--landing-text-secondary)" }}>Autism pattern recognition</p>
             </div>
           </div>
 
@@ -92,8 +101,8 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
               <Brain className="size-4 text-indigo-400" />
             </div>
             <div>
-              <p className="text-white text-[11px] font-bold tracking-tight">Health Monitoring</p>
-              <p className="text-indigo-200/40 text-[9px] font-medium">Growth charts & sleep logs</p>
+              <p className="text-[11px] font-bold tracking-tight" style={{ color: "var(--landing-text)" }}>Health Monitoring</p>
+              <p className="text-[9px] font-medium" style={{ color: "var(--landing-text-secondary)" }}>Growth charts & sleep logs</p>
             </div>
           </div>
 
@@ -102,10 +111,10 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
 
       {/* 3. DIAGNOSTIC SYSTEM DESCRIPTION */}
       <div className="card-left-text gsap-reveal order-3 lg:order-1 flex flex-col justify-center text-center lg:text-left z-20 w-full lg:max-w-none px-4 lg:px-0">
-        <h3 className="text-white text-2xl md:text-3xl lg:text-4xl font-bold mb-3 tracking-tight leading-tight">
+        <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-3 tracking-tight leading-tight" style={{ color: "var(--landing-text)" }}>
           {cardHeading}
         </h3>
-        <p className="hidden md:block text-neutral-400 text-sm md:text-base font-light leading-relaxed mx-auto lg:mx-0 max-w-sm lg:max-w-none">
+        <p className="hidden md:block text-sm md:text-base font-light leading-relaxed mx-auto lg:mx-0 max-w-sm lg:max-w-none" style={{ color: "var(--landing-text-secondary)" }}>
           {cardDescription}
         </p>
 
@@ -115,12 +124,12 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
         </div>
       </div>
 
-      <AuthModal open={authMode === "signup"} onClose={() => setAuthMode(null)} title="Create Your Account">
-        <SignupForm onSwitchToLogin={() => setAuthMode("login")} />
+      <AuthModal open={authMode === "signup"} onClose={() => setAuthMode(null)} title="Create Your Account" description="Register to start tracking your child's developmental milestones and health.">
+        <SignupForm onSwitchToLogin={() => setAuthMode("login")} onSuccess={handleAuthSuccess} />
       </AuthModal>
 
-      <AuthModal open={authMode === "login"} onClose={() => setAuthMode(null)} title="Welcome Back">
-        <LoginForm onSwitchToSignup={() => setAuthMode("signup")} />
+      <AuthModal open={authMode === "login"} onClose={() => setAuthMode(null)} title="Welcome Back" description="Sign in to continue monitoring your child's progress and assessments.">
+        <LoginForm onSwitchToSignup={() => setAuthMode("signup")} onSuccess={handleAuthSuccess} />
       </AuthModal>
 
     </div>

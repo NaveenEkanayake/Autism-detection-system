@@ -30,6 +30,20 @@
   --glass-border: rgba(0, 0, 0, 0.08);
   --hover-bg: rgba(0, 0, 0, 0.04);
   --badge-bg: rgba(59, 147, 245, 0.1);
+  --landing-bg: #f0f4ff;
+  --landing-card: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
+  --landing-card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.1), inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  --landing-card-border: rgba(0, 0, 0, 0.06);
+  --landing-text: #0f172a;
+  --landing-text-secondary: #64748b;
+  --landing-bezel: #e2e8f0;
+  --landing-bezel-shadow: inset 0 0 0 2px #cbd5e1, inset 0 0 0 7px #f1f5f9, 0 40px 80px -15px rgba(0,0,0,0.15);
+  --landing-notch: #ffffff;
+  --landing-screen: #f8fafc;
+  --landing-badge-bg: rgba(255, 255, 255, 0.8);
+  --landing-badge-border: rgba(0, 0, 0, 0.06);
+  --landing-widget-bg: rgba(255, 255, 255, 0.6);
+  --landing-widget-border: rgba(0, 0, 0, 0.05);
 }
 
 html.dark,
@@ -47,6 +61,20 @@ html.dark,
   --glass-border: rgba(255, 255, 255, 0.08);
   --hover-bg: rgba(255, 255, 255, 0.04);
   --badge-bg: rgba(59, 147, 245, 0.15);
+  --landing-bg: #0a0a0a;
+  --landing-card: linear-gradient(145deg, #070d1e 0%, #040508 100%);
+  --landing-card-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.95), inset 0 1px 2px rgba(255, 255, 255, 0.05);
+  --landing-card-border: rgba(255, 255, 255, 0.02);
+  --landing-text: #ffffff;
+  --landing-text-secondary: #64748b;
+  --landing-bezel: #121214;
+  --landing-bezel-shadow: inset 0 0 0 2px #27272A, inset 0 0 0 7px #000, 0 40px 80px -15px rgba(0,0,0,0.9);
+  --landing-notch: #000000;
+  --landing-screen: #04060c;
+  --landing-badge-bg: rgba(255, 255, 255, 0.02);
+  --landing-badge-border: rgba(255, 255, 255, 0.04);
+  --landing-widget-bg: rgba(255, 255, 255, 0.02);
+  --landing-widget-border: rgba(255, 255, 255, 0.015);
 }
 
 html {

@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Globe, Brain } from "lucide-react";
+import { useTheme } from "../../hooks/useTheme";
 
 function TextHoverEffect({ text, className }) {
   const svgRef = useRef(null);
@@ -97,6 +98,8 @@ function FooterBackgroundGradient() {
 }
 
 function HoverFooter() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const footerLinks = [
     {
       title: "About Us",
@@ -129,26 +132,26 @@ function HoverFooter() {
   ];
 
   return (
-    <footer id="footer-section" className="relative bg-[#0F0F11]/10 rounded-3xl overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8">
+    <footer id="footer-section" className="relative rounded-3xl overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8" style={{ backgroundColor: isDark ? "rgba(15,15,17,0.1)" : "rgba(15,15,17,0.05)" }}>
       <div className="max-w-7xl mx-auto p-6 md:p-14 z-40 relative">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 pb-6 md:pb-12">
           <div className="flex flex-col space-y-4">
             <div className="flex items-center gap-2">
               <Brain className="size-6 text-blue-400" />
-              <span className="text-white text-xl md:text-2xl font-bold">Aura<span className="text-blue-400">Track</span></span>
+              <span className="text-xl md:text-2xl font-bold" style={{ color: "var(--landing-text)" }}>Aura<span className="text-blue-400">Track</span></span>
             </div>
-            <p className="text-sm text-neutral-400 leading-relaxed">
+            <p className="text-sm leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>
               Early detection platform for autism spectrum disorder, empowering families and clinicians with AI-driven screening tools.
             </p>
           </div>
 
           {footerLinks.map((section) => (
             <div key={section.title}>
-              <h4 className="text-white text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider">{section.title}</h4>
+              <h4 className="text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider" style={{ color: "var(--landing-text)" }}>{section.title}</h4>
               <ul className="space-y-2.5">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-sm text-neutral-400 hover:text-blue-400 transition-colors duration-300">
+                    <a href={link.href} className="text-sm hover:text-blue-400 transition-colors duration-300" style={{ color: "var(--landing-text-secondary)" }}>
                       {link.label}
                     </a>
                   </li>
@@ -158,17 +161,17 @@ function HoverFooter() {
           ))}
 
           <div>
-            <h4 className="text-white text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider">Contact</h4>
+            <h4 className="text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider" style={{ color: "var(--landing-text)" }}>Contact</h4>
             <ul className="space-y-3">
               {contactInfo.map((item, i) => (
                 <li key={i} className="flex items-center gap-3">
                   {item.icon}
                   {item.href ? (
-                    <a href={item.href} className="text-sm text-neutral-400 hover:text-blue-400 transition-colors duration-300">
+                    <a href={item.href} className="text-sm hover:text-blue-400 transition-colors duration-300" style={{ color: "var(--landing-text-secondary)" }}>
                       {item.text}
                     </a>
                   ) : (
-                    <span className="text-sm text-neutral-400">{item.text}</span>
+                    <span className="text-sm" style={{ color: "var(--landing-text-secondary)" }}>{item.text}</span>
                   )}
                 </li>
               ))}
@@ -176,17 +179,17 @@ function HoverFooter() {
           </div>
         </div>
 
-        <hr className="border-t border-white/5 my-6 md:my-8" />
+        <hr className="my-6 md:my-8" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }} />
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
-          <div className="flex gap-5 text-neutral-500">
+          <div className="flex gap-5" style={{ color: "var(--text-muted)" }}>
             {socialLinks.map(({ icon, label, href }) => (
               <a key={label} href={href} aria-label={label} className="hover:text-blue-400 transition-colors duration-300">
                 {icon}
               </a>
             ))}
           </div>
-          <p className="text-xs text-neutral-500">
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
             &copy; {new Date().getFullYear()} AuraTrack. All rights reserved.
           </p>
         </div>

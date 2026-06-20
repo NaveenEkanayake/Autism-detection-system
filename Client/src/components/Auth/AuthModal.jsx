@@ -23,7 +23,7 @@ function CloseIcon() {
   );
 }
 
-function AuthModal({ open, onClose, title, children }) {
+function AuthModal({ open, onClose, title, description, children }) {
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -56,7 +56,10 @@ function AuthModal({ open, onClose, title, children }) {
             className="relative z-10 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-neutral-900/95 backdrop-blur-xl shadow-2xl"
           >
             <div className="sticky top-0 flex items-center justify-between p-6 pb-4 border-b border-white/5 bg-neutral-900/95 backdrop-blur-xl z-20">
-              <h2 className="text-xl font-bold text-white">{title}</h2>
+              <div>
+                <h2 className="text-xl font-bold text-white">{title}</h2>
+                {description && <p className="text-sm text-neutral-400 mt-1">{description}</p>}
+              </div>
               <button
                 onClick={onClose}
                 className="relative w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center hover:bg-white/10 transition-colors"

@@ -53,14 +53,14 @@ function HamburgerIcon({ open }) {
 }
 
 function Sidebar({ open, onClose }) {
-  const { user, setUser } = useAuth();
+  const { user, logout } = useAuth();
   const { activePatient, getAgeLabel } = usePatients();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const ageLabel = getAgeLabel(activePatient.dob);
+  const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
 
-  const handleLogout = () => {
-    setUser(null);
+  const handleLogout = async () => {
+    await logout();
     navigate("/");
     onClose();
   };
@@ -103,6 +103,7 @@ function Sidebar({ open, onClose }) {
       </div>
 
       {/* Active Patient */}
+      {activePatient && (
       <div className="mx-4 mt-4 p-3 rounded-xl border" style={{ borderColor: "var(--sidebar-border)", background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))" }}>
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-white flex-shrink-0"
@@ -118,6 +119,7 @@ function Sidebar({ open, onClose }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 mt-4 space-y-1 overflow-y-auto">

@@ -1,15 +1,20 @@
-import { useState } from "react";
-
-const DEMO_PATIENT = {
-  id: "demo-patient-1",
-  name: "Alex",
-  sex: "male",
-  dob: "2021-06-15",
-};
+import { useState, useEffect } from "react";
+import { api } from "../lib/api";
 
 export function usePatients() {
-  const [activePatient, setActivePatient] = useState(DEMO_PATIENT);
-  const [patients, setPatients] = useState([DEMO_PATIENT]);
+  const [patients, setPatients] = useState([]);
+  const [activePatient, setActivePatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api("/patients")
+      .then((data) => {
+        setPatients(data);
+        if (data.length > 0) setActivePatient(data[0]);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const getAgeMonths = (dob) => {
     const birth = new Date(dob);
@@ -18,11 +23,12 @@ export function usePatients() {
   };
 
   const getAgeLabel = (dob) => {
+    if (!dob) return "";
     const months = getAgeMonths(dob);
     if (months < 24) return `${months} months`;
     const years = Math.floor(months / 12);
     return `${years} year${years > 1 ? "s" : ""}`;
   };
 
-  return { activePatient, setActivePatient, patients, setPatients, getAgeMonths, getAgeLabel };
+  return { patients, setPatients, activePatient, setActivePatient, loading, getAgeMonths, getAgeLabel };
 }

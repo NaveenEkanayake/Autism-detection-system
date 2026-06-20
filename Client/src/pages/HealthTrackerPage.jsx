@@ -35,7 +35,7 @@ const INITIAL_SLEEP = [
 function HealthTrackerPage() {
   const navigate = useNavigate();
   const { activePatient, getAgeMonths } = usePatients();
-  const ageMonths = getAgeMonths(activePatient.dob);
+  const ageMonths = activePatient ? getAgeMonths(activePatient.dob) : 0;
 
   const [activeTab, setActiveTab] = useState("milestones");
   const [milestones, setMilestones] = useState(INITIAL_MILESTONES);
@@ -93,7 +93,7 @@ function HealthTrackerPage() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">Health Tracker</h1>
-            <p className="text-slate-500 text-sm">{activePatient.name} &middot; {ageMonths} months old</p>
+            <p className="text-slate-500 text-sm">{activePatient?.name} &middot; {ageMonths} months old</p>
           </div>
         </div>
 

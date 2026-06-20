@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Brain } from "lucide-react";
+import { Brain, Sun, Moon } from "lucide-react";
+import { useTheme } from "../../../hooks/useTheme";
 
 function MenuIcon({ open }) {
   return (
@@ -26,6 +27,7 @@ function MenuIcon({ open }) {
 
 function LandingNav({ activeSection = 0 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const navLinks = [
     { id: 0, label: "Home", href: "#hero-section" },
@@ -88,6 +90,15 @@ function LandingNav({ activeSection = 0 }) {
                 );
               })}
             </div>
+
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="relative w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-all"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
           </div>
         </div>
       </nav>
@@ -104,13 +115,22 @@ function LandingNav({ activeSection = 0 }) {
             </span>
           </a>
 
-          <button
-            className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          >
-            <MenuIcon open={mobileOpen} />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white transition-all"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            >
+              <MenuIcon open={mobileOpen} />
+            </button>
+          </div>
         </div>
       </nav>
 
@@ -155,4 +175,3 @@ function LandingNav({ activeSection = 0 }) {
 }
 
 export default LandingNav;
-

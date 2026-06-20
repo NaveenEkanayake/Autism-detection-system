@@ -10,6 +10,8 @@ const badgeVariants = {
 };
 
 export default function WelcomeHeader({ patient, age, onNavigate }) {
+  if (!patient) return null;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

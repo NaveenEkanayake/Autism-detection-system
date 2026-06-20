@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Send, RefreshCw } from "lucide-react";
+import { usePatients } from "../hooks/usePatients";
+import { useAuth } from "../hooks/useAuth";
 
 const SDQ_QUESTIONS = [
   { id: 1, text: "Considerate of other people's feelings", scale: "prosocial" },
@@ -62,6 +64,8 @@ function SdqPage() {
   const [submitted, setSubmitted] = useState(false);
   const [scores, setScores] = useState(null);
   const [saving, setSaving] = useState(false);
+  const { activePatient } = usePatients();
+  const { user } = useAuth();
 
   const totalPages = Math.ceil(SDQ_QUESTIONS.length / QUESTIONS_PER_PAGE);
   const pageQuestions = SDQ_QUESTIONS.slice(sdqPage * QUESTIONS_PER_PAGE, (sdqPage + 1) * QUESTIONS_PER_PAGE);
@@ -90,13 +94,14 @@ function SdqPage() {
   if (submitted && scores) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-6" style={{ background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))" }}>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="rounded-2xl p-6 border" style={{ background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))", borderColor: "var(--card-border)" }}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-white font-semibold text-lg">SDQ Assessment Results</h3>
-              <p className="text-slate-400 text-sm">Total Difficulties Score: <span className="text-white font-bold">{scores.total}/40</span></p>
+              <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>SDQ Assessment Results</h3>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Total Difficulties Score: <span className="font-bold" style={{ color: "var(--text-primary)" }}>{scores.total}/40</span></p>
             </div>
-            <span className={scores.risk === "high" ? "badge-red" : scores.risk === "borderline" ? "badge-amber" : "badge-green"}>
+            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${scores.risk === "high" ? "bg-red-500/15 text-red-400 border border-red-500/30" : scores.risk === "borderline" ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-teal-500/15 text-teal-400 border border-teal-500/30"}`}>
               {scores.risk === "high" ? "High Risk" : scores.risk === "borderline" ? "Borderline" : "Normal Range"}
             </span>
           </div>
@@ -104,33 +109,37 @@ function SdqPage() {
 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {Object.entries(SCALE_META).map(([key, meta], i) => (
-            <motion.div key={key} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }} className={"glass-card p-4 border " + meta.border}>
-              <p className={"text-xs font-semibold " + meta.color + " mb-2"}>{meta.label}</p>
-              <p className="text-white text-2xl font-display font-bold">{scores[key]}</p>
-              <div className="mt-2 h-1 rounded-full bg-white/10 overflow-hidden">
+            <motion.div key={key} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
+              className={`rounded-2xl p-4 border ${meta.border}`} style={{ background: "var(--card-bg)" }}>
+              <p className={`text-xs font-semibold ${meta.color} mb-2`}>{meta.label}</p>
+              <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores[key]}</p>
+              <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
                 <div className="h-full rounded-full transition-all duration-700" style={{ width: Math.min((scores[key] / 10) * 100, 100) + "%", background: key === "prosocial" ? "#14b8a6" : "#f59e0b" }} />
               </div>
             </motion.div>
           ))}
         </div>
 
-        <div className="glass-card p-5">
-          <p className="text-white font-semibold text-sm mb-3">Interpretation</p>
+        <div className="rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <p className="font-semibold text-sm mb-3" style={{ color: "var(--text-primary)" }}>Interpretation</p>
           <div className="grid grid-cols-3 gap-3 text-sm">
             {[
               { range: "0-14", label: "Normal", color: "text-teal-400" },
               { range: "15-19", label: "Borderline", color: "text-amber-400" },
               { range: "20-40", label: "Abnormal", color: "text-red-400" },
             ].map(({ range, label, color }) => (
-              <div key={label} className="text-center p-3 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
-                <p className={"font-bold " + color}>{range}</p>
-                <p className="text-slate-500 text-xs">{label}</p>
+              <div key={label} className="text-center p-3 rounded-xl" style={{ background: "var(--hover-bg)" }}>
+                <p className={`font-bold ${color}`}>{range}</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
               </div>
             ))}
           </div>
         </div>
 
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="btn-secondary" onClick={resetSDQ}>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border"
+          style={{ borderColor: "var(--card-border)", background: "var(--card-bg)", color: "var(--text-primary)" }}
+          onClick={resetSDQ}>
           <RefreshCw className="w-4 h-4" /> New Assessment
         </motion.button>
       </div>
@@ -139,21 +148,21 @@ function SdqPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <div className="glass-card p-5 mb-5">
+      <div className="rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-white font-semibold">Strengths & Difficulties Questionnaire</h2>
-            <p className="text-slate-500 text-sm">25-item standardized behavioral assessment</p>
+            <h2 className="font-semibold" style={{ color: "var(--text-primary)" }}>Strengths & Difficulties Questionnaire</h2>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>25-item standardized behavioral assessment</p>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">{totalAnswered}/25</span>
-            <p className="text-slate-500 text-xs">answered</p>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">{totalAnswered}/25</span>
+            <p className="text-xs" style={{ color: "var(--text-muted)" }}>answered</p>
           </div>
         </div>
-        <div className="w-full h-2 rounded-full bg-white/5 overflow-hidden">
+        <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
           <div className="h-full rounded-full transition-all duration-500" style={{ width: (totalAnswered / 25) * 100 + "%", background: "linear-gradient(90deg, #3b93f5, #14b8a6)" }} />
         </div>
-        <p className="text-slate-500 text-xs mt-2">Page {sdqPage + 1} of {totalPages}</p>
+        <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>Page {sdqPage + 1} of {totalPages}</p>
       </div>
 
       <div className="space-y-4 mb-5">
@@ -165,22 +174,27 @@ function SdqPage() {
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.08, duration: 0.3 }}
-              className={"glass-card p-5 border " + (answers[q.id] !== undefined ? "border-blue-500/20" : "border-white/8")}
+              className={`rounded-2xl p-5 border transition-all ${answers[q.id] !== undefined ? "border-blue-500/30" : ""}`}
+              style={{ background: "var(--card-bg)", borderColor: answers[q.id] !== undefined ? undefined : "var(--card-border)" }}
             >
               <div className="flex items-start gap-4">
-                <div className={"flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold " + meta.bg + " " + meta.color}>
+                <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${meta.bg} ${meta.color}`}>
                   {q.id}
                 </div>
-                <div className="flex-1">
-                  <p className="text-white text-sm mb-1">{q.text}</p>
-                  <span className={"badge text-xs " + meta.bg + " " + meta.color + " " + meta.border}>{meta.label}</span>
-                  <div className="flex gap-2 mt-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm mb-2" style={{ color: "var(--text-primary)" }}>{q.text}</p>
+                  <span className={`inline-block text-xs font-medium px-2.5 py-1 rounded-full border ${meta.bg} ${meta.color} ${meta.border}`}>{meta.label}</span>
+                  <div className="grid grid-cols-3 gap-2 mt-3">
                     {SDQ_OPTIONS.map((opt, i) => (
                       <button
                         key={opt}
                         onClick={() => handleAnswer(q.id, i)}
-                        className={"flex-1 py-2 px-3 rounded-lg text-xs font-medium transition-all duration-200 border " + (answers[q.id] === i ? "border-blue-500 text-blue-300" : "border-white/8 text-slate-500 hover:border-white/20 hover:text-white")}
-                        style={answers[q.id] === i ? { background: "rgba(59,147,245,0.15)" } : { background: "rgba(255,255,255,0.03)" }}
+                        className={`py-2.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 border text-center ${
+                          answers[q.id] === i
+                            ? "border-blue-500/50 text-blue-300 bg-blue-500/15"
+                            : "text-center hover:border-white/20"
+                        }`}
+                        style={answers[q.id] !== i ? { background: "var(--hover-bg)", borderColor: "var(--card-border)", color: "var(--text-secondary)" } : {}}
                       >
                         {opt}
                       </button>
@@ -193,19 +207,25 @@ function SdqPage() {
         })}
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-2">
         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          className="btn-secondary" onClick={() => setSdqPage((p) => p - 1)} disabled={sdqPage === 0}>
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ borderColor: "var(--card-border)", background: "var(--card-bg)", color: "var(--text-primary)" }}
+          onClick={() => setSdqPage((p) => p - 1)} disabled={sdqPage === 0}>
           <ChevronLeft className="w-4 h-4" /> Previous
         </motion.button>
         {sdqPage < totalPages - 1 ? (
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            className="btn-primary" onClick={() => setSdqPage((p) => p + 1)} disabled={answeredOnPage < QUESTIONS_PER_PAGE}>
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
+            onClick={() => setSdqPage((p) => p + 1)} disabled={answeredOnPage < QUESTIONS_PER_PAGE}>
             Next <ChevronRight className="w-4 h-4" />
           </motion.button>
         ) : (
           <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            className="btn-primary" onClick={handleSubmitSDQ} disabled={totalAnswered < 25 || saving}>
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
+            onClick={handleSubmitSDQ} disabled={totalAnswered < 25 || saving}>
             {saving ? (
               <span className="flex items-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

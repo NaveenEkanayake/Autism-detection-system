@@ -5,6 +5,7 @@ import DiagnosticMockup from "../PhoneText/DiagnosticMockup";
 import AnimatedText from "../AnimatedShinyText/AnimatedShinyText";
 import AboutUs from "../Aboutus/Aboutus";
 import { ABOUT_SLIDES } from "../Aboutus/Constants";
+import { useTheme } from "../../../hooks/useTheme";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -26,29 +27,29 @@ const INJECTED_STYLES = `
       -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
   }
   .premium-depth-card {
-      background: linear-gradient(145deg, #070d1e 0%, #040508 100%);
-      box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.95), inset 0 1px 2px rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.02);
+      background: var(--landing-card);
+      box-shadow: var(--landing-card-shadow);
+      border: 1px solid var(--landing-card-border);
   }
   .card-sheen {
       position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 50;
       background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(59,130,246,0.07) 0%, transparent 40%);
   }
   .iphone-bezel {
-      background-color: #121214;
-      box-shadow: inset 0 0 0 2px #27272A, inset 0 0 0 7px #000, 0 40px 80px -15px rgba(0,0,0,0.9);
+      background-color: var(--landing-bezel);
+      box-shadow: var(--landing-bezel-shadow);
       transform-style: preserve-3d;
   }
   .hardware-btn { background: linear-gradient(90deg, #3F3F46 0%, #18181B 100%); }
   .screen-glare { background: linear-gradient(110deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 45%); }
   .widget-depth {
-      background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.003) 100%);
-      border: 1px solid rgba(255,255,255,0.015);
+      background: var(--landing-widget-bg);
+      border: 1px solid var(--landing-widget-border);
   }
   .floating-ui-badge {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.02) 0%, rgba(255, 255, 255, 0.003) 100%);
+      background: var(--landing-badge-bg);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 0 1px var(--landing-badge-border), 0 25px 50px -12px rgba(0, 0, 0, 0.15);
   }
   .progress-ring {
       transform: rotate(-90deg); transform-origin: center;

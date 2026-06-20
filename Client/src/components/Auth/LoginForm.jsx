@@ -1,22 +1,51 @@
 import { useState } from "react";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import GradientButton from "../ui/GradientButton";
+import { useAuth } from "../../hooks/useAuth";
+import { showToast } from "../ui/toast";
 
-function LoginForm({ onSwitchToSignup }) {
+function LoginForm({ onSwitchToSignup, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const { login } = useAuth();
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Login data:", form);
+    setError("");
+    setSubmitting(true);
+    try {
+      console.log("🔑 Login attempt:", form.email);
+      await login(form.email, form.password);
+      console.log("🎉 Login complete, redirecting to dashboard");
+      showToast({
+        title: "Welcome Back!",
+        description: "Login successful. Redirecting to dashboard...",
+        type: "success",
+      });
+      setTimeout(() => {
+        onSuccess?.();
+      }, 1500);
+    } catch (err) {
+      const msg = err.message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "").trim() || "Invalid email or password";
+      setError(msg);
+      console.error("❌ Login error:", msg);
+      showToast({
+        title: "Login Failed",
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+      {error && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">{error}</div>
+      )}
       <div>
         <label className="block text-sm font-medium text-neutral-300 mb-1.5">Email</label>
         <div className="relative">
@@ -25,7 +54,7 @@ function LoginForm({ onSwitchToSignup }) {
             type="email"
             name="email"
             value={form.email}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
             placeholder="you@example.com"
             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
             required
@@ -41,7 +70,7 @@ function LoginForm({ onSwitchToSignup }) {
             type={showPassword ? "text" : "password"}
             name="password"
             value={form.password}
-            onChange={handleChange}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
             placeholder="Enter your password"
             className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
             required
@@ -61,22 +90,15 @@ function LoginForm({ onSwitchToSignup }) {
           <input type="checkbox" className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500/30" />
           Remember me
         </label>
-        <button type="button" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-          Forgot password?
-        </button>
       </div>
 
-      <GradientButton type="submit" disabled={false}>
-        <span className="label">Sign In</span>
+      <GradientButton type="submit" disabled={submitting}>
+        <span className="label">{submitting ? "Signing in..." : "Sign In"}</span>
       </GradientButton>
 
       <p className="text-center text-sm text-neutral-500">
         Don&apos;t have an account?{" "}
-        <button
-          type="button"
-          onClick={onSwitchToSignup}
-          className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-        >
+        <button type="button" onClick={onSwitchToSignup} className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
           Sign up
         </button>
       </p>

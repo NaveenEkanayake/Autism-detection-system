@@ -6,6 +6,7 @@ import FeaturesCards from "../components/ui/feature-shader-cards";
 import Background from "../components/3DBackground/Background";
 import LandingNav from "../components/Herosection/LandingNav/LandingNav";
 import HoverFooter from "../components/ui/hover-footer";
+import { useTheme } from "../hooks/useTheme";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -17,6 +18,7 @@ function Home() {
   const sectionRef = useRef(null);
   const headerRef = useRef(null);
   const cardsRef = useRef(null);
+  const { theme } = useTheme();
 
   // ── RE-ADDED THE CORE HOME SCROLL SYNC TRIGGER FOR THE FEATURES SECTION ──
   useEffect(() => {
@@ -49,8 +51,7 @@ function Home() {
   }, []);
 
   return (
-    /* ── FIXED BELOW: Changed root container background from bg-neutral-950 to bg-transparent ── */
-    <div className="w-full min-h-screen bg-transparent antialiased selection:bg-blue-500/30 selection:text-blue-200">
+    <div className="w-full min-h-screen antialiased selection:bg-blue-500/30 selection:text-blue-200" style={{ backgroundColor: "var(--landing-bg)" }}>
       
       {/* 3D Background Layer */}
       <div

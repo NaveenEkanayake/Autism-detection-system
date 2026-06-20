@@ -70,7 +70,7 @@ function DashboardPage() {
   const { user } = useAuth();
   const { activePatient, getAgeLabel } = usePatients();
   const navigate = useNavigate();
-  const ageLabel = getAgeLabel(activePatient.dob);
+  const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
   const { scrollYProgress } = useScroll();
   const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.8]);
 
@@ -98,7 +98,7 @@ function DashboardPage() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3, duration: 0.5 }}
               >
-                Welcome back, {user.name}
+                Welcome back, {user?.name || "User"}
               </motion.p>
             </div>
           </div>
