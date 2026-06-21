@@ -34,11 +34,11 @@ function TextHoverEffect({ text, className }) {
         <linearGradient id="textGradient" gradientUnits="userSpaceOnUse" cx="50%" cy="50%" r="25%">
           {hovered && (
             <>
-              <stop offset="0%" stopColor="#eab308" />
-              <stop offset="25%" stopColor="#ef4444" />
-              <stop offset="50%" stopColor="#80eeb4" />
-              <stop offset="75%" stopColor="#06b6d4" />
-              <stop offset="100%" stopColor="#8b5cf6" />
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="25%" stopColor="#2dd4bf" />
+              <stop offset="50%" stopColor="#8b5cf6" />
+              <stop offset="75%" stopColor="#f59e0b" />
+              <stop offset="100%" stopColor="#ef4444" />
             </>
           )}
         </linearGradient>
@@ -91,7 +91,7 @@ function FooterBackgroundGradient() {
     <div
       className="absolute inset-0 z-0"
       style={{
-        background: "radial-gradient(125% 125% at 50% 10%, #0F0F1166 50%, #3ca2fa33 100%)",
+        background: "radial-gradient(125% 125% at 50% 10%, #0F0F1166 50%, #3ca2fa11 100%)",
       }}
     />
   );
@@ -132,26 +132,28 @@ function HoverFooter() {
   ];
 
   return (
-    <footer id="footer-section" className="relative rounded-3xl overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8" style={{ backgroundColor: isDark ? "rgba(15,15,17,0.1)" : "rgba(15,15,17,0.05)" }}>
-      <div className="max-w-7xl mx-auto p-6 md:p-14 z-40 relative">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12 pb-6 md:pb-12">
-          <div className="flex flex-col space-y-4">
-            <div className="flex items-center gap-2">
-              <Brain className="size-6 text-blue-400" />
-              <span className="text-xl md:text-2xl font-bold" style={{ color: "var(--landing-text)" }}>Aura<span className="text-blue-400">Track</span></span>
+    <footer id="footer-section" className="relative rounded-[48px] overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8 border border-white/5 shadow-2xl" style={{ backgroundColor: isDark ? "rgba(15,15,17,0.4)" : "rgba(15,15,17,0.05)" }}>
+      <div className="max-w-7xl mx-auto p-8 md:p-16 z-40 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12">
+          <div className="flex flex-col space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
+                <Brain className="size-6 text-white" />
+              </div>
+              <span className="text-2xl font-bold tracking-tight" style={{ color: "var(--landing-text)" }}>Aura<span className="text-blue-400">Track</span></span>
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>
-              Early detection platform for autism spectrum disorder, empowering families and clinicians with AI-driven screening tools.
+            <p className="text-sm leading-relaxed opacity-80" style={{ color: "var(--landing-text-secondary)" }}>
+              Empowering the next generation through AI-driven early autism detection and comprehensive pediatric tracking.
             </p>
           </div>
 
           {footerLinks.map((section) => (
             <div key={section.title}>
-              <h4 className="text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider" style={{ color: "var(--landing-text)" }}>{section.title}</h4>
-              <ul className="space-y-2.5">
+              <h4 className="text-xs font-bold mb-6 uppercase tracking-widest" style={{ color: "var(--landing-text)" }}>{section.title}</h4>
+              <ul className="space-y-3">
                 {section.links.map((link) => (
                   <li key={link.label}>
-                    <a href={link.href} className="text-sm hover:text-blue-400 transition-colors duration-300" style={{ color: "var(--landing-text-secondary)" }}>
+                    <a href={link.href} className="text-sm transition-all duration-300 hover:text-blue-400 hover:translate-x-1 inline-block" style={{ color: "var(--landing-text-secondary)" }}>
                       {link.label}
                     </a>
                   </li>
@@ -161,17 +163,19 @@ function HoverFooter() {
           ))}
 
           <div>
-            <h4 className="text-sm font-semibold mb-4 md:mb-6 uppercase tracking-wider" style={{ color: "var(--landing-text)" }}>Contact</h4>
-            <ul className="space-y-3">
+            <h4 className="text-xs font-bold mb-6 uppercase tracking-widest" style={{ color: "var(--landing-text)" }}>Contact</h4>
+            <ul className="space-y-4">
               {contactInfo.map((item, i) => (
-                <li key={i} className="flex items-center gap-3">
-                  {item.icon}
+                <li key={i} className="flex items-center gap-3 group cursor-pointer">
+                  <div className="p-2 rounded-lg bg-white/5 group-hover:bg-blue-500/10 transition-colors">
+                    {item.icon}
+                  </div>
                   {item.href ? (
-                    <a href={item.href} className="text-sm hover:text-blue-400 transition-colors duration-300" style={{ color: "var(--landing-text-secondary)" }}>
+                    <a href={item.href} className="text-sm transition-colors duration-300 group-hover:text-blue-400" style={{ color: "var(--landing-text-secondary)" }}>
                       {item.text}
                     </a>
                   ) : (
-                    <span className="text-sm" style={{ color: "var(--landing-text-secondary)" }}>{item.text}</span>
+                    <span className="text-sm transition-colors duration-300 group-hover:text-blue-400" style={{ color: "var(--landing-text-secondary)" }}>{item.text}</span>
                   )}
                 </li>
               ))}
@@ -179,18 +183,18 @@ function HoverFooter() {
           </div>
         </div>
 
-        <hr className="my-6 md:my-8" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }} />
+        <hr className="my-10" style={{ borderTop: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)"}` }} />
 
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 md:gap-0">
-          <div className="flex gap-5" style={{ color: "var(--text-muted)" }}>
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex gap-6">
             {socialLinks.map(({ icon, label, href }) => (
-              <a key={label} href={href} aria-label={label} className="hover:text-blue-400 transition-colors duration-300">
+              <a key={label} href={href} aria-label={label} className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300" style={{ color: "var(--text-muted)" }}>
                 {icon}
               </a>
             ))}
           </div>
-          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-            &copy; {new Date().getFullYear()} AuraTrack. All rights reserved.
+          <p className="text-xs tracking-wide opacity-60" style={{ color: "var(--text-muted)" }}>
+            &copy; {new Date().getFullYear()} AuraTrack. Engineered for Precision.
           </p>
         </div>
       </div>

@@ -1,6 +1,28 @@
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
+let modalCount = 0;
+
+function useBodyLock(open) {
+  useEffect(() => {
+    if (open) {
+      modalCount++;
+      if (modalCount === 1) {
+        document.body.style.overflow = "hidden";
+      }
+    }
+    return () => {
+      if (open) {
+        modalCount--;
+        if (modalCount <= 0) {
+          modalCount = 0;
+          document.body.style.overflow = "";
+        }
+      }
+    };
+  }, [open]);
+}
+
 function CloseIcon() {
   return (
     <div className="relative w-5 h-5 flex items-center justify-center">
@@ -24,16 +46,7 @@ function CloseIcon() {
 }
 
 function AuthModal({ open, onClose, title, description, children }) {
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+  useBodyLock(open);
 
   return (
     <AnimatePresence>

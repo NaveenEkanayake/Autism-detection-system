@@ -19,53 +19,70 @@ export default function RecentActivity({ stats }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="rounded-xl p-4 col-span-2 border"
+      className="rounded-2xl p-5 lg:col-span-2 border"
       style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
     >
-      <div className="flex items-center gap-2 mb-4">
-        <Activity className="w-4 h-4" style={{ color: "var(--accent-blue)" }} />
-        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>Recent Activity</span>
+      <div className="flex items-center gap-2.5 mb-5">
+        <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "rgba(59,147,245,0.12)" }}>
+          <Activity className="w-4 h-4" style={{ color: "rgb(96,165,250)" }} />
+        </div>
+        <div>
+          <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Recent Activity</span>
+          <p className="text-xs" style={{ color: "var(--text-muted)" }}>Latest interactions with your child&apos;s profile</p>
+        </div>
       </div>
       {!hasActivity ? (
-        <div className="text-center py-6">
+        <div className="text-center py-8">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center mx-auto mb-3" style={{ background: "rgba(59,147,245,0.1)" }}>
+            <Activity className="w-5 h-5" style={{ color: "var(--text-muted)" }} />
+          </div>
           <p className="text-sm" style={{ color: "var(--text-muted)" }}>No activity yet. Start with a screening assessment.</p>
         </div>
       ) : (
-        <motion.div initial="hidden" animate="visible" variants={itemsVariant} className="space-y-2">
+        <motion.div initial="hidden" animate="visible" variants={itemsVariant} className="space-y-1">
           {stats.sdq > 0 && (
-            <motion.div variants={itemVariant} className="flex items-center gap-3 py-2 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+            <motion.div variants={itemVariant} className="flex items-center gap-3.5 p-3 rounded-xl transition-colors hover:bg-white/5" style={{ borderColor: "var(--sidebar-border)" }}>
               <motion.div
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(59,147,245,0.15)" }}
                 whileHover={{ scale: 1.15, rotate: 5 }}
               >
-                <Brain className="w-3.5 h-3.5" style={{ color: "rgb(96,165,250)" }} />
+                <Brain className="w-4 h-4" style={{ color: "rgb(96,165,250)" }} />
               </motion.div>
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>{stats.sdq} SDQ assessment(s) completed</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{stats.sdq} SDQ assessment(s) completed</span>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Behavioral screening</p>
+              </div>
             </motion.div>
           )}
           {stats.milestones > 0 && (
-            <motion.div variants={itemVariant} className="flex items-center gap-3 py-2 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+            <motion.div variants={itemVariant} className="flex items-center gap-3.5 p-3 rounded-xl transition-colors hover:bg-white/5" style={{ borderColor: "var(--sidebar-border)" }}>
               <motion.div
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(20,184,166,0.15)" }}
                 whileHover={{ scale: 1.15, rotate: 5 }}
               >
-                <CheckCircle className="w-3.5 h-3.5" style={{ color: "rgb(45,212,191)" }} />
+                <CheckCircle className="w-4 h-4" style={{ color: "rgb(45,212,191)" }} />
               </motion.div>
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>{stats.milestones} milestone(s) logged</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{stats.milestones} milestone(s) logged</span>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Developmental tracking</p>
+              </div>
             </motion.div>
           )}
           {stats.growth > 0 && (
-            <motion.div variants={itemVariant} className="flex items-center gap-3 py-2">
+            <motion.div variants={itemVariant} className="flex items-center gap-3.5 p-3 rounded-xl transition-colors hover:bg-white/5">
               <motion.div
-                className="w-7 h-7 rounded-lg flex items-center justify-center"
+                className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: "rgba(6,182,212,0.15)" }}
                 whileHover={{ scale: 1.15, rotate: 5 }}
               >
-                <TrendingUp className="w-3.5 h-3.5" style={{ color: "rgb(34,211,238)" }} />
+                <TrendingUp className="w-4 h-4" style={{ color: "rgb(34,211,238)" }} />
               </motion.div>
-              <span className="text-sm" style={{ color: "var(--text-primary)" }}>{stats.growth} growth measurement(s) recorded</span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{stats.growth} growth measurement(s) recorded</span>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>Height &amp; weight tracking</p>
+              </div>
             </motion.div>
           )}
         </motion.div>

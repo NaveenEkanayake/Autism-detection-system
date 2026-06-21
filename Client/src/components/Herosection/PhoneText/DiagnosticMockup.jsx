@@ -13,9 +13,13 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
   const navigate = useNavigate();
   const { theme } = useTheme();
 
-  const handleAuthSuccess = () => {
-    setAuthMode(null);
-    navigate("/dashboard");
+  const handleAuthSuccess = (isSignup = false) => {
+    if (isSignup) {
+      setAuthMode("login");
+    } else {
+      setAuthMode(null);
+      navigate("/dashboard");
+    }
   };
   return (
     <div className="relative w-full h-full max-w-7xl mx-auto px-4 lg:px-12 flex flex-col justify-evenly lg:grid lg:grid-cols-3 items-center lg:gap-8 z-10 py-6 lg:py-0">

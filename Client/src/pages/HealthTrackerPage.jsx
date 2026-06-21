@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { usePatients } from "../hooks/usePatients";
+import { gsap } from "gsap";
+import { ArrowLeft, Activity, TrendingUp, Moon } from "lucide-react";
+import { usePatients } from "../hooks/PatientsContext";
 import TabBar from "../components/Health/TabBar";
 import MilestoneSection from "../components/Health/MilestoneSection";
 import GrowthChartSection from "../components/Health/GrowthChartSection";
 import SleepLogSection from "../components/Health/SleepLogSection";
 
 const TABS = [
-  { id: "milestones", label: "Milestones" },
-  { id: "growth", label: "Growth" },
-  { id: "sleep", label: "Sleep" },
+  { id: "milestones", label: "Milestones", icon: Activity },
+  { id: "growth", label: "Growth", icon: TrendingUp },
+  { id: "sleep", label: "Sleep", icon: Moon },
 ];
 
 const INITIAL_MILESTONES = {
@@ -18,7 +19,43 @@ const INITIAL_MILESTONES = {
   head_control: { completed: true, recorded_at: "2026-03-15" },
   follows_object: { completed: true, recorded_at: "2026-04-10" },
   reaches_objects: { completed: false },
+  first_laugh: { completed: true, recorded_at: "2026-04-20" },
+  sits_supported: { completed: false },
   babbling: { completed: true, recorded_at: "2026-05-01" },
+  stranger_anxiety: { completed: false },
+  pincer_grasp: { completed: false },
+  crawling: { completed: false },
+  first_words: { completed: false },
+  walks_alone: { completed: false },
+  points_objects: { completed: false },
+  gestures: { completed: false },
+  understands_commands: { completed: false },
+  stacks_blocks: { completed: false },
+  says_phrases: { completed: false },
+  runs_stiffly: { completed: false },
+  feeds_self: { completed: false },
+  climbs_furniture: { completed: false },
+  recognizes_colors: { completed: false },
+  two_words: { completed: false },
+  runs_well: { completed: false },
+  parallel_play: { completed: false },
+  jumps: { completed: false },
+  dresses_self: { completed: false },
+  washes_hands: { completed: false },
+  speaks_sentences: { completed: false },
+  pedals_tricycle: { completed: false },
+  imaginary_play: { completed: false },
+  new_milestone: { completed: false },
+  follows_rules: { completed: false },
+  hops_one_foot: { completed: false },
+  counts: { completed: false },
+  brushes_teeth: { completed: false },
+  draws_person: { completed: false },
+  cooperative_play: { completed: false },
+  writes_name: { completed: false },
+  ties_shoes: { completed: false },
+  reads_words: { completed: false },
+  understands_time: { completed: false },
 };
 
 const INITIAL_GROWTH = [
@@ -36,16 +73,55 @@ function HealthTrackerPage() {
   const navigate = useNavigate();
   const { activePatient, getAgeMonths } = usePatients();
   const ageMonths = activePatient ? getAgeMonths(activePatient.dob) : 0;
+  const containerRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("milestones");
-  const [milestones, setMilestones] = useState(INITIAL_MILESTONES);
-  const [growthLogs, setGrowthLogs] = useState(INITIAL_GROWTH);
-  const [sleepLogs, setSleepLogs] = useState(INITIAL_SLEEP);
+  const [milestones, setMilestones] = useState(() => {
+    const saved = localStorage.getItem("milestones");
+    return saved ? JSON.parse(saved) : INITIAL_MILESTONES;
+  });
+  const [growthLogs, setGrowthLogs] = useState(() => {
+    const saved = localStorage.getItem("growthLogs");
+    return saved ? JSON.parse(saved) : INITIAL_GROWTH;
+  });
+  const [sleepLogs, setSleepLogs] = useState(() => {
+    const saved = localStorage.getItem("sleepLogs");
+    return saved ? JSON.parse(saved) : INITIAL_SLEEP;
+  });
+
+  useEffect(() => {
+    localStorage.setItem("milestones", JSON.stringify(milestones));
+  }, [milestones]);
+
+  useEffect(() => {
+    localStorage.setItem("growthLogs", JSON.stringify(growthLogs));
+  }, [growthLogs]);
+
+  useEffect(() => {
+    localStorage.setItem("sleepLogs", JSON.stringify(sleepLogs));
+  }, [sleepLogs]);
   const [showGrowthForm, setShowGrowthForm] = useState(false);
   const [showSleepForm, setShowSleepForm] = useState(false);
   const [growthForm, setGrowthForm] = useState({ weight_kg: "", height_cm: "", head_cm: "" });
   const [sleepForm, setSleepForm] = useState({ start_time: "", end_time: "", quality: "good", notes: "" });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(".health-header", { opacity: 0, y: 20, duration: 0.5, ease: "power3.out" });
+      gsap.from(".health-content", { opacity: 0, y: 30, duration: 0.5, ease: "power2.out", delay: 0.2 });
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    const el = contentRef.current;
+    if (el) {
+      gsap.fromTo(el, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.25, ease: "power2.out" });
+    }
+  }, [activeTab]);
 
   const handleToggleMilestone = (m) => {
     setMilestones((prev) => ({
@@ -86,19 +162,20 @@ function HealthTrackerPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-        <div className="flex items-center gap-4">
-          <button className="btn-ghost p-2 text-slate-500 hover:text-white" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-white">Health Tracker</h1>
-            <p className="text-slate-500 text-sm">{activePatient?.name} &middot; {ageMonths} months old</p>
-          </div>
+    <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <div className="health-header flex items-center gap-4">
+        <button className="p-2 rounded-xl transition-colors hover:bg-white/5" style={{ color: "var(--text-secondary)" }} onClick={() => navigate("/dashboard")}>
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Health Tracker</h1>
+          <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{activePatient?.name} &middot; {ageMonths} months old</p>
         </div>
+      </div>
 
-        <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
 
+      <div ref={contentRef} className="health-content">
         {activeTab === "milestones" && (
           <MilestoneSection milestones={milestones} ageMonths={ageMonths} onToggle={handleToggleMilestone} />
         )}
@@ -125,6 +202,7 @@ function HealthTrackerPage() {
           />
         )}
       </div>
+    </div>
   );
 }
 

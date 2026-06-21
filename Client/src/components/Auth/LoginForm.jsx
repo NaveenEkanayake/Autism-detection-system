@@ -21,11 +21,11 @@ function LoginForm({ onSwitchToSignup, onSuccess }) {
       console.log("🎉 Login complete, redirecting to dashboard");
       showToast({
         title: "Welcome Back!",
-        description: "Login successful. Redirecting to dashboard...",
+        description: "Login successful.",
         type: "success",
       });
       setTimeout(() => {
-        onSuccess?.();
+        onSuccess?.(false);
       }, 1500);
     } catch (err) {
       const msg = err.message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "").trim() || "Invalid email or password";
@@ -92,7 +92,7 @@ function LoginForm({ onSwitchToSignup, onSuccess }) {
         </label>
       </div>
 
-      <GradientButton type="submit" disabled={submitting}>
+      <GradientButton type="submit" loading={submitting}>
         <span className="label">{submitting ? "Signing in..." : "Sign In"}</span>
       </GradientButton>
 

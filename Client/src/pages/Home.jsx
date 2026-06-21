@@ -20,29 +20,27 @@ function Home() {
   const cardsRef = useRef(null);
   const { theme } = useTheme();
 
-  // ── RE-ADDED THE CORE HOME SCROLL SYNC TRIGGER FOR THE FEATURES SECTION ──
   useEffect(() => {
     if (!sectionRef.current) return;
 
     const ctx = gsap.context(() => {
-      // Create a master scroll milestone tracker explicitly for the Home layout container
       ScrollTrigger.create({
         trigger: sectionRef.current,
-        start: "top 75%", // Triggers slightly before the section fully enters the viewport
+        start: "top 70%",
         end: "bottom 20%",
         onEnter: () => {
-          setActiveSection(2); // Instantly swap Three.js camera path to index 2
-          setShowBg(true);     // Fade in background canvas opacity
+          setActiveSection(2);
+          setShowBg(true);
         },
         onEnterBack: () => {
           setActiveSection(2);
           setShowBg(true);
         },
         onLeaveBack: () => {
-          setActiveSection(1); // Safely drop back to About context when scrolling up
+          setActiveSection(1);
         },
         onLeave: () => {
-          setShowBg(false);    // Fade out smoothly right before entering the page footer
+          setShowBg(false);
         }
       });
     }, sectionRef);
@@ -51,36 +49,47 @@ function Home() {
   }, []);
 
   return (
-    <div className="w-full min-h-screen antialiased selection:bg-blue-500/30 selection:text-blue-200" style={{ backgroundColor: "var(--landing-bg)" }}>
+    <div className="w-full min-h-screen antialiased selection:bg-blue-500/30 selection:text-blue-200 relative overflow-x-hidden scroll-smooth" style={{ backgroundColor: "var(--landing-bg)" }}>
       
-      {/* 3D Background Layer */}
+      {/* ── CINEMATIC OVERLAYS (Fixed Global Stage) ── */}
+      <div className="fixed inset-0 pointer-events-none z-[100] overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" 
+             style={{ 
+               backgroundImage: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>')` 
+             }} 
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.4)_100%)]" />
+      </div>
+
+      {/* ── 3D BACKGROUND LAYER (Depth Anchor) ── */}
       <div
-        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 ease-out"
+        className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 ease-in-out"
         style={{ opacity: showBg ? 1 : 0 }}
       >
         <Background activeSection={activeSection} />
       </div>
       
-      {/* Interactive UI Layer */}
+      {/* ── LAYERED UI STACK ── */}
       <div className="relative z-10 bg-transparent">
         <LandingNav activeSection={activeSection} />
         
+        {/* Hero Layer: Pinned and scaled as the next layer arrives */}
         <AutismScreeningHero 
           setActiveSection={setActiveSection}
           setShowBg={setShowBg}
         />
         
-        {/* Pass state triggers directly down to features */}
+        {/* Features Layer: Slides up and over the Hero */}
         <section
           ref={sectionRef}
           id="features"
-          className="relative bg-transparent w-full min-h-screen overflow-hidden"
+          className="relative z-20 bg-transparent w-full min-h-screen overflow-hidden"
         >
           <div className="relative z-10 bg-transparent">
             <FeaturesCards 
               headerRef={headerRef} 
               featuresRef={cardsRef} 
-              sectionRef={sectionRef} // Safely anchors sub-component references
+              sectionRef={sectionRef}
               setActiveSection={setActiveSection}
               setShowBg={setShowBg}
             />

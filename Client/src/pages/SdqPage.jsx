@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Send, RefreshCw } from "lucide-react";
-import { usePatients } from "../hooks/usePatients";
-import { useAuth } from "../hooks/useAuth";
+import { useState, useEffect, useRef } from "react";
+import { gsap } from "gsap";
+import { ChevronLeft, ChevronRight, Send, RefreshCw, Trophy, AlertTriangle } from "lucide-react";
+import { usePatients } from "../hooks/PatientsContext";
+import PageWrapper from "../components/Layout/PageWrapper";
 
 const SDQ_QUESTIONS = [
   { id: 1, text: "Considerate of other people's feelings", scale: "prosocial" },
@@ -65,7 +65,9 @@ function SdqPage() {
   const [scores, setScores] = useState(null);
   const [saving, setSaving] = useState(false);
   const { activePatient } = usePatients();
-  const { user } = useAuth();
+  const questionsRef = useRef(null);
+  const resultsRef = useRef(null);
+  const prevPage = useRef(sdqPage);
 
   const totalPages = Math.ceil(SDQ_QUESTIONS.length / QUESTIONS_PER_PAGE);
   const pageQuestions = SDQ_QUESTIONS.slice(sdqPage * QUESTIONS_PER_PAGE, (sdqPage + 1) * QUESTIONS_PER_PAGE);
@@ -73,6 +75,25 @@ function SdqPage() {
   const totalAnswered = Object.keys(answers).length;
 
   const handleAnswer = (qId, val) => setAnswers((prev) => ({ ...prev, [qId]: val }));
+
+  useEffect(() => {
+    if (!questionsRef.current) return;
+    const direction = sdqPage > prevPage.current ? 1 : -1;
+    prevPage.current = sdqPage;
+
+    const ctx = gsap.context(() => {
+      gsap.from(".sdq-question", {
+        opacity: 0, x: direction * 40, duration: 0.4,
+        stagger: 0.06, ease: "power2.out",
+      });
+    }, questionsRef);
+    return () => ctx.revert();
+  }, [sdqPage]);
+
+  const handlePageChange = (dir) => {
+    setSdqPage((p) => p + dir);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleSubmitSDQ = () => {
     if (totalAnswered < 25) return;
@@ -84,70 +105,87 @@ function SdqPage() {
     }, 800);
   };
 
+  useEffect(() => {
+    if (submitted && resultsRef.current) {
+      const ctx = gsap.context(() => {
+        gsap.from(".result-header", { opacity: 0, y: -20, duration: 0.5, ease: "power3.out" });
+        gsap.from(".score-card", { opacity: 0, y: 30, scale: 0.9, stagger: 0.08, duration: 0.5, ease: "back.out(1.3)", delay: 0.2 });
+        gsap.from(".interpretation-card", { opacity: 0, y: 20, stagger: 0.1, duration: 0.4, ease: "power2.out", delay: 0.6 });
+      }, resultsRef);
+      return () => ctx.revert();
+    }
+  }, [submitted]);
+
   const resetSDQ = () => {
-    setSubmitted(false);
-    setAnswers({});
-    setSdqPage(0);
-    setScores(null);
+    gsap.to(resultsRef.current, {
+      opacity: 0, y: -20, duration: 0.3, ease: "power2.in",
+      onComplete: () => {
+        setSubmitted(false);
+        setAnswers({});
+        setSdqPage(0);
+        setScores(null);
+      },
+    });
   };
 
   if (submitted && scores) {
     return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-5">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-          className="rounded-2xl p-6 border" style={{ background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))", borderColor: "var(--card-border)" }}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>SDQ Assessment Results</h3>
-              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Total Difficulties Score: <span className="font-bold" style={{ color: "var(--text-primary)" }}>{scores.total}/40</span></p>
-            </div>
-            <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${scores.risk === "high" ? "bg-red-500/15 text-red-400 border border-red-500/30" : scores.risk === "borderline" ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-teal-500/15 text-teal-400 border border-teal-500/30"}`}>
-              {scores.risk === "high" ? "High Risk" : scores.risk === "borderline" ? "Borderline" : "Normal Range"}
-            </span>
-          </div>
-        </motion.div>
-
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {Object.entries(SCALE_META).map(([key, meta], i) => (
-            <motion.div key={key} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-              className={`rounded-2xl p-4 border ${meta.border}`} style={{ background: "var(--card-bg)" }}>
-              <p className={`text-xs font-semibold ${meta.color} mb-2`}>{meta.label}</p>
-              <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores[key]}</p>
-              <div className="mt-2 h-1 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
-                <div className="h-full rounded-full transition-all duration-700" style={{ width: Math.min((scores[key] / 10) * 100, 100) + "%", background: key === "prosocial" ? "#14b8a6" : "#f59e0b" }} />
+      <PageWrapper title="SDQ Assessment Results">
+        <div ref={resultsRef} className="space-y-5">
+          <div className="result-header rounded-2xl p-6 border" style={{ background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))", borderColor: "var(--card-border)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>SDQ Assessment Results</h3>
+                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Total Difficulties Score: <span className="font-bold" style={{ color: "var(--text-primary)" }}>{scores.total}/40</span></p>
               </div>
-            </motion.div>
-          ))}
-        </div>
+              <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${scores.risk === "high" ? "bg-red-500/15 text-red-400 border border-red-500/30" : scores.risk === "borderline" ? "bg-amber-500/15 text-amber-400 border border-amber-500/30" : "bg-teal-500/15 text-teal-400 border border-teal-500/30"}`}>
+                {scores.risk === "high" ? <AlertTriangle className="w-3 h-3" /> : <Trophy className="w-3 h-3" />}
+                {scores.risk === "high" ? "High Risk" : scores.risk === "borderline" ? "Borderline" : "Normal Range"}
+              </span>
+            </div>
+          </div>
 
-        <div className="rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-          <p className="font-semibold text-sm mb-3" style={{ color: "var(--text-primary)" }}>Interpretation</p>
-          <div className="grid grid-cols-3 gap-3 text-sm">
-            {[
-              { range: "0-14", label: "Normal", color: "text-teal-400" },
-              { range: "15-19", label: "Borderline", color: "text-amber-400" },
-              { range: "20-40", label: "Abnormal", color: "text-red-400" },
-            ].map(({ range, label, color }) => (
-              <div key={label} className="text-center p-3 rounded-xl" style={{ background: "var(--hover-bg)" }}>
-                <p className={`font-bold ${color}`}>{range}</p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {Object.entries(SCALE_META).map(([key, meta]) => (
+              <div key={key} className={`score-card rounded-2xl p-4 border ${meta.border}`} style={{ background: "var(--card-bg)" }}>
+                <p className={`text-xs font-semibold ${meta.color} mb-2`}>{meta.label}</p>
+                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores[key]}</p>
+                <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
+                  <div className="h-full rounded-full transition-all duration-700" style={{ width: Math.min((scores[key] / 10) * 100, 100) + "%", background: key === "prosocial" ? "#14b8a6" : "#f59e0b" }} />
+                </div>
               </div>
             ))}
           </div>
-        </div>
 
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border"
-          style={{ borderColor: "var(--card-border)", background: "var(--card-bg)", color: "var(--text-primary)" }}
-          onClick={resetSDQ}>
-          <RefreshCw className="w-4 h-4" /> New Assessment
-        </motion.button>
-      </div>
+          <div className="rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <p className="font-semibold text-sm mb-3" style={{ color: "var(--text-primary)" }}>Interpretation</p>
+            <div className="grid grid-cols-3 gap-3 text-sm">
+              {[
+                { range: "0-14", label: "Normal", color: "text-teal-400" },
+                { range: "15-19", label: "Borderline", color: "text-amber-400" },
+                { range: "20-40", label: "Abnormal", color: "text-red-400" },
+              ].map(({ range, label, color }) => (
+                <div key={label} className="interpretation-card text-center p-3 rounded-xl border" style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)" }}>
+                  <p className={`font-bold ${color}`}>{range}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border hover:scale-[1.02] active:scale-[0.98]"
+            style={{ borderColor: "var(--card-border)", background: "var(--card-bg)", color: "var(--text-primary)" }}
+            onClick={resetSDQ}>
+            <RefreshCw className="w-4 h-4" /> New Assessment
+          </button>
+        </div>
+      </PageWrapper>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <PageWrapper title="Strengths & Difficulties Questionnaire">
       <div className="rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
         <div className="flex items-center justify-between mb-3">
           <div>
@@ -165,16 +203,15 @@ function SdqPage() {
         <p className="text-xs mt-2" style={{ color: "var(--text-muted)" }}>Page {sdqPage + 1} of {totalPages}</p>
       </div>
 
-      <div className="space-y-4 mb-5">
-        {pageQuestions.map((q, idx) => {
+      <div ref={questionsRef} className="space-y-4 mb-5">
+        {pageQuestions.map((q) => {
           const meta = SCALE_META[q.scale];
           return (
-            <motion.div
+            <div
               key={q.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.08, duration: 0.3 }}
-              className={`rounded-2xl p-5 border transition-all ${answers[q.id] !== undefined ? "border-blue-500/30" : ""}`}
+              className={`sdq-question rounded-2xl p-5 border transition-all ${
+                answers[q.id] !== undefined ? "border-blue-500/30" : ""
+              }`}
               style={{ background: "var(--card-bg)", borderColor: answers[q.id] !== undefined ? undefined : "var(--card-border)" }}
             >
               <div className="flex items-start gap-4">
@@ -192,7 +229,7 @@ function SdqPage() {
                         className={`py-2.5 px-3 rounded-xl text-xs font-medium transition-all duration-200 border text-center ${
                           answers[q.id] === i
                             ? "border-blue-500/50 text-blue-300 bg-blue-500/15"
-                            : "text-center hover:border-white/20"
+                            : "hover:border-white/20"
                         }`}
                         style={answers[q.id] !== i ? { background: "var(--hover-bg)", borderColor: "var(--card-border)", color: "var(--text-secondary)" } : {}}
                       >
@@ -202,28 +239,28 @@ function SdqPage() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border disabled:opacity-40 disabled:cursor-not-allowed"
+        <button
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 border disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
           style={{ borderColor: "var(--card-border)", background: "var(--card-bg)", color: "var(--text-primary)" }}
-          onClick={() => setSdqPage((p) => p - 1)} disabled={sdqPage === 0}>
+          onClick={() => handlePageChange(-1)} disabled={sdqPage === 0}>
           <ChevronLeft className="w-4 h-4" /> Previous
-        </motion.button>
+        </button>
         {sdqPage < totalPages - 1 ? (
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          <button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
             style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-            onClick={() => setSdqPage((p) => p + 1)} disabled={answeredOnPage < QUESTIONS_PER_PAGE}>
+            onClick={() => handlePageChange(1)}>
             Next <ChevronRight className="w-4 h-4" />
-          </motion.button>
+          </button>
         ) : (
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+          <button
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:scale-[1.02] active:scale-[0.98]"
             style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
             onClick={handleSubmitSDQ} disabled={totalAnswered < 25 || saving}>
             {saving ? (
@@ -234,10 +271,10 @@ function SdqPage() {
             ) : (
               <>Submit Assessment <Send className="w-4 h-4" /></>
             )}
-          </motion.button>
+          </button>
         )}
       </div>
-    </div>
+    </PageWrapper>
   );
 }
 

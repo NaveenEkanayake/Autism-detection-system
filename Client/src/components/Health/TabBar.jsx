@@ -2,7 +2,7 @@ import { CheckSquare, TrendingUp, Moon } from "lucide-react";
 
 export default function TabBar({ tabs, activeTab, onTabChange }) {
   return (
-    <div className="flex gap-1 glass-card p-1 w-fit">
+    <div className="flex gap-1 p-1 w-fit rounded-2xl" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
       {tabs.map(({ id, label }) => {
         const icons = { milestones: CheckSquare, growth: TrendingUp, sleep: Moon };
         const Icon = icons[id];

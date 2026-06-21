@@ -1,11 +1,12 @@
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { gsap } from "gsap";
 import {
   Activity, Brain, TrendingUp, FileText, Moon,
-  ChevronRight, Camera
+  ChevronRight, Camera, LayoutGrid
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { usePatients } from "../hooks/usePatients";
+import { usePatients } from "../hooks/PatientsContext";
 import WelcomeHeader from "../components/Dashboard/WelcomeHeader";
 import StatCard from "../components/Dashboard/StatCard";
 import SystemStatus from "../components/Dashboard/SystemStatus";
@@ -26,42 +27,15 @@ const QUICK_CARDS = [
   { icon: FileText, title: "Document Library", desc: "Encrypted clinical document vault with PDF export", badge: "Storage", color: "245,176,65", to: "/documents" },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
-};
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: "easeOut" } },
-};
-
 function FloatingOrbs() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-      <motion.div
-        className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20"
-        style={{ background: "radial-gradient(circle, rgba(59,147,245,0.3), transparent 70%)" }}
-        animate={{ x: [0, 30, 0], y: [0, -20, 0] }}
-        transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full opacity-15"
-        style={{ background: "radial-gradient(circle, rgba(20,184,166,0.3), transparent 70%)" }}
-        animate={{ x: [0, -25, 0], y: [0, 15, 0] }}
-        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute top-1/2 right-16 w-64 h-64 rounded-full opacity-10"
-        style={{ background: "radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)" }}
-        animate={{ x: [0, 20, 0], y: [0, -30, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-      />
+      <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20 animate-float-slow"
+        style={{ background: "radial-gradient(circle, rgba(59,147,245,0.3), transparent 70%)" }} />
+      <div className="absolute -bottom-32 -right-32 w-80 h-80 rounded-full opacity-15 animate-float-medium"
+        style={{ background: "radial-gradient(circle, rgba(20,184,166,0.3), transparent 70%)" }} />
+      <div className="absolute top-1/2 right-16 w-64 h-64 rounded-full opacity-10 animate-float-fast"
+        style={{ background: "radial-gradient(circle, rgba(168,85,247,0.25), transparent 70%)" }} />
     </div>
   );
 }
@@ -71,85 +45,112 @@ function DashboardPage() {
   const { activePatient, getAgeLabel } = usePatients();
   const navigate = useNavigate();
   const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
-  const { scrollYProgress } = useScroll();
-  const headerOpacity = useTransform(scrollYProgress, [0, 0.1], [1, 0.8]);
+  const containerRef = useRef(null);
+  const headerRef = useRef(null);
+  const statsRef = useRef(null);
+  const quickRef = useRef(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(headerRef.current, {
+        opacity: 0, y: 30, duration: 0.8, ease: "power3.out",
+      });
+
+      gsap.from(statsRef.current?.children || [], {
+        opacity: 0, y: 40, scale: 0.9, duration: 0.6,
+        stagger: 0.08, ease: "back.out(1.2)", delay: 0.3,
+      });
+
+      const quickCards = quickRef.current?.children || [];
+      if (quickCards.length > 0) {
+        gsap.from(quickCards, {
+          opacity: 0, y: 40, scale: 0.95,
+          duration: 0.6, stagger: 0.1, ease: "power2.out",
+          delay: 0.5,
+        });
+      }
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+    <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <FloatingOrbs />
 
-      <motion.div initial="hidden" animate="visible" variants={containerVariants} className="space-y-6">
-        <motion.div variants={itemVariants} style={{ opacity: headerOpacity }}>
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <motion.h1
-                className="text-2xl font-bold"
-                style={{ color: "var(--text-primary)" }}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              >
+      {/* Page Header */}
+      <div ref={headerRef}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-1">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-cyan-400" />
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
                 Dashboard
-              </motion.h1>
-              <motion.p
-                className="text-sm"
-                style={{ color: "var(--text-secondary)" }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
-              >
-                Welcome back, {user?.name || "User"}
-              </motion.p>
+              </h1>
             </div>
+            <p className="text-sm ml-4" style={{ color: "var(--text-secondary)" }}>
+              Welcome back, {user?.name || "User"}
+            </p>
           </div>
-        </motion.div>
+        </div>
+      </div>
 
-        <motion.div variants={itemVariants}>
-          <WelcomeHeader patient={activePatient} age={ageLabel} onNavigate={() => navigate("/sdq")} />
-        </motion.div>
+      <WelcomeHeader patient={activePatient} age={ageLabel} onNavigate={() => navigate("/sdq")} />
 
-        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Overview Section */}
+      <div>
+        <div className="flex items-center gap-2.5 mb-4">
+          <LayoutGrid className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
+          <h2 className="text-sm font-semibold tracking-wide uppercase" style={{ color: "var(--text-secondary)" }}>
+            Overview
+          </h2>
+          <div className="flex-1 h-px" style={{ background: "var(--card-border)" }} />
+        </div>
+        <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           {STATS.map((stat) => (
-            <motion.div key={stat.label} variants={scaleIn} whileHover={{ y: -4 }} transition={{ type: "spring", stiffness: 300, damping: 15 }}>
+            <div key={stat.label} className="hover:-translate-y-0.5 transition-transform duration-300">
               <StatCard {...stat} loading={false} />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
+      </div>
 
-        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <RecentActivity stats={{ sdq: 3, milestones: 8, growth: 5 }} />
-          <SystemStatus />
-        </motion.div>
-      </motion.div>
+      {/* Activity & System Status */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5">
+        <RecentActivity stats={{ sdq: 3, milestones: 8, growth: 5 }} />
+        <SystemStatus />
+      </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-      >
-        <h2 className="font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Quick Access</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {QUICK_CARDS.map((card, idx) => (
-            <motion.button
+      {/* Quick Access */}
+      <div>
+        <div className="flex items-center gap-2.5 mb-4">
+          <LayoutGrid className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
+          <h2 className="text-sm font-semibold tracking-wide uppercase" style={{ color: "var(--text-secondary)" }}>
+            Quick Access
+          </h2>
+          <div className="flex-1 h-px" style={{ background: "var(--card-border)" }} />
+        </div>
+        <div ref={quickRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {QUICK_CARDS.map((card) => (
+            <button
               key={card.to}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-30px" }}
-              transition={{ delay: idx * 0.1, duration: 0.5, ease: "easeOut" }}
-              whileHover={{ scale: 1.02, y: -4 }}
-              whileTap={{ scale: 0.98 }}
               onClick={() => navigate(card.to)}
-              className="relative overflow-hidden rounded-2xl p-6 text-left w-full group cursor-pointer border transition-all duration-300"
+              className="relative overflow-hidden rounded-2xl p-6 text-left w-full group cursor-pointer border transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl"
               style={{
                 background: "var(--card-bg)",
                 borderColor: "var(--card-border)",
               }}
             >
-              <motion.div
+              <div
                 className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                 style={{
-                  background: `linear-gradient(135deg, rgba(${card.color},0.08), rgba(${card.color},0.02))`,
+                  background: `linear-gradient(135deg, rgba(${card.color},0.1), rgba(${card.color},0.02))`,
+                }}
+              />
+              <div
+                className="absolute -top-10 -right-10 w-28 h-28 rounded-full opacity-0 group-hover:opacity-10 transition-all duration-500"
+                style={{
+                  background: `radial-gradient(circle, rgba(${card.color},0.4), transparent 70%)`,
                 }}
               />
               <div className="relative z-[1]">
@@ -158,29 +159,24 @@ function DashboardPage() {
                     className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg"
                     style={{ background: `rgba(${card.color}, 0.12)` }}
                   >
-                    <motion.div
-                      whileHover={{ rotate: [0, -10, 10, -5, 0] }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      <card.icon className="w-6 h-6" style={{ color: `rgb(${card.color})` }} />
-                    </motion.div>
+                    <card.icon className="w-6 h-6" style={{ color: `rgb(${card.color})` }} />
                   </div>
-                  <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-1 rounded-full"
+                  <span className="text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full"
                     style={{ background: `rgba(${card.color}, 0.15)`, color: `rgb(${card.color})` }}>
                     {card.badge}
                   </span>
                 </div>
-                <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>{card.title}</h3>
+                <h3 className="font-semibold mb-1.5" style={{ color: "var(--text-primary)" }}>{card.title}</h3>
                 <p className="text-sm leading-relaxed mb-4" style={{ color: "var(--text-secondary)" }}>{card.desc}</p>
                 <span className="text-xs font-medium flex items-center gap-1 transition-all duration-300 group-hover:gap-2"
                   style={{ color: `rgb(${card.color})` }}>
-                  Open <ChevronRight className="w-3 h-3 transition-transform duration-300 group-hover:translate-x-0.5" />
+                  Open <ChevronRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
                 </span>
               </div>
-            </motion.button>
+            </button>
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

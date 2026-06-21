@@ -4,7 +4,7 @@ import GradientButton from "../ui/GradientButton";
 import { useAuth } from "../../hooks/useAuth";
 import { api } from "../../lib/api";
 import { auth } from "../../lib/firebase";
-import { deleteUser } from "firebase/auth";
+import { deleteUser, signOut } from "firebase/auth";
 import { showToast } from "../ui/toast";
 
 function SignupForm({ onSwitchToLogin, onSuccess }) {
@@ -32,6 +32,8 @@ function SignupForm({ onSwitchToLogin, onSuccess }) {
           body: JSON.stringify({ name: child.name, dob: child.dob, sex: child.sex }),
         });
         console.log("✅ Child profile created successfully");
+        await signOut(auth);
+        console.log("🚪 Signed out after signup — user must log in");
       } catch (patientErr) {
         console.error("❌ Failed to create child profile:", patientErr.message);
         if (auth.currentUser) {
@@ -43,11 +45,11 @@ function SignupForm({ onSwitchToLogin, onSuccess }) {
       console.log("🎉 Signup complete, redirecting to dashboard");
       showToast({
         title: "Account Created!",
-        description: "Welcome to AuraTrack. Redirecting to dashboard...",
+        description: "Please log in to continue.",
         type: "success",
       });
       setTimeout(() => {
-        onSuccess?.();
+        onSuccess?.(true);
       }, 1500);
     } catch (err) {
       const msg = err.message.replace("Firebase: ", "").replace(/\(auth\/.*\)/, "").trim() || "Something went wrong";
@@ -131,7 +133,7 @@ function SignupForm({ onSwitchToLogin, onSuccess }) {
         </div>
       </div>
 
-      <GradientButton type="submit" disabled={submitting}>
+      <GradientButton type="submit" loading={submitting}>
         <span className="label">{submitting ? "Creating Account..." : "Create Account & Add Child"}</span>
       </GradientButton>
 

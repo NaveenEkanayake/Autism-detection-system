@@ -39,73 +39,88 @@ function LandingNav({ activeSection = 0 }) {
     e.preventDefault();
     const el = document.querySelector(href);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const offset = 80; // Professional offset for the floating nav
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth"
+      });
     }
     setMobileOpen(false);
   };
 
   return (
     <>
-      {/* Desktop Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 hidden md:block">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className="flex items-center gap-2 text-white">
-              <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
-                <Brain className="size-5" strokeWidth={2} />
-              </div>
-              <span className="text-sm font-bold tracking-tight">
-                Aura<span className="text-blue-400">Track</span>
-              </span>
-            </a>
-
-            {/* Nav links */}
-            <div className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] shadow-lg">
-              {navLinks.map((link, i) => {
-                const isActive = activeSection === link.id;
-                const isLast = i === navLinks.length - 1;
-                return (
-                  <React.Fragment key={link.id}>
-                    <a
-                      href={link.href}
-                      onClick={(e) => scrollToSection(e, link.href)}
-                      className={`relative text-[11px] font-bold tracking-widest uppercase transition-all duration-500 px-3 py-1.5 rounded-lg ${
-                        isActive
-                          ? "text-blue-400 bg-blue-500/10"
-                          : "text-neutral-500 hover:text-neutral-300"
-                      }`}
-                    >
-                      {link.label}
-                      {isActive && (
-                        <motion.div
-                          layoutId="active-nav-line"
-                          className="absolute bottom-0 left-2 right-2 h-[2px] bg-blue-500 rounded-full shadow-[0_0_6px_rgba(59,130,246,0.5)]"
-                          transition={{ type: "spring", stiffness: 200, damping: 25 }}
-                        />
-                      )}
-                    </a>
-                    {!isLast && <span className="w-px h-3 bg-white/5" />}
-                  </React.Fragment>
-                );
-              })}
+      {/* Desktop Nav - Cinematic Floating Capsule */}
+      <nav className="fixed top-0 left-0 right-0 z-[60] hidden md:block p-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between h-16">
+          {/* Logo */}
+          <motion.a 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "expo.out" }}
+            href="#hero-section" 
+            onClick={(e) => scrollToSection(e, "#hero-section")} 
+            className="flex items-center gap-2 text-white group cursor-pointer"
+          >
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform duration-300">
+              <Brain className="size-5" strokeWidth={2} />
             </div>
+            <span className="text-sm font-bold tracking-tight">
+              Aura<span className="text-blue-400">Track</span>
+            </span>
+          </motion.a>
 
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="relative w-9 h-9 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 transition-all"
-              aria-label="Toggle theme"
-            >
-              {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+          {/* Nav links - Glass Capsule */}
+          <div className="flex items-center gap-1 px-3 py-2 rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl shadow-black/20">
+            {navLinks.map((link, i) => {
+              const isActive = activeSection === link.id;
+              const isLast = i === navLinks.length - 1;
+              return (
+                <React.Fragment key={link.id}>
+                  <a
+                    href={link.href}
+                    onClick={(e) => scrollToSection(e, link.href)}
+                    className={`relative text-[11px] font-bold tracking-widest uppercase transition-all duration-500 px-4 py-2 rounded-xl ${
+                      isActive
+                        ? "text-blue-400 bg-blue-500/10 shadow-inner"
+                        : "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    {link.label}
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-nav-line"
+                        className="absolute bottom-1 left-2 right-2 h-[2px] bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.6)]"
+                        transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                      />
+                    )}
+                  </a>
+                  {!isLast && <span className="w-px h-3 bg-white/5 mx-1" />}
+                </React.Fragment>
+              );
+            })}
           </div>
+
+          {/* Theme Toggle - Cinematic Button */}
+          <motion.button
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "expo.out" }}
+            onClick={toggleTheme}
+            className="relative w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 shadow-lg shadow-black/20"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+          </motion.button>
         </div>
       </nav>
 
       {/* Mobile Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 md:hidden">
-        <div className="flex items-center justify-between px-4 h-14">
+      <nav className="fixed top-0 left-0 right-0 z-[60] md:hidden p-4">
+        <div className="flex items-center justify-between h-14 px-2">
           <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className="flex items-center gap-2 text-white">
             <div className="p-1 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
               <Brain className="size-4" strokeWidth={2} />
@@ -124,7 +139,7 @@ function LandingNav({ activeSection = 0 }) {
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
-              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center"
+              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center z-[70]"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
             >
@@ -134,17 +149,17 @@ function LandingNav({ activeSection = 0 }) {
         </div>
       </nav>
 
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Cinematic Fade */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-40 md:hidden flex flex-col items-center justify-center bg-neutral-950/95 backdrop-blur-2xl"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="fixed inset-0 z-40 md:hidden flex flex-col items-center justify-center bg-neutral-950/95 backdrop-blur-3xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
           >
-            <nav className="flex flex-col items-center gap-5">
+            <nav className="flex flex-col items-center gap-6">
               {navLinks.map((link, i) => {
                 const isActive = activeSection === link.id;
                 return (
@@ -152,15 +167,15 @@ function LandingNav({ activeSection = 0 }) {
                     key={link.id}
                     href={link.href}
                     onClick={(e) => scrollToSection(e, link.href)}
-                    className={`text-base font-bold tracking-[0.2em] uppercase transition-all duration-300 px-6 py-2.5 rounded-xl ${
+                    className={`text-lg font-bold tracking-[0.2em] uppercase transition-all duration-300 px-8 py-3 rounded-2xl ${
                       isActive
-                        ? "text-blue-400 bg-blue-500/10 border border-blue-500/20"
+                        ? "text-blue-400 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
                         : "text-neutral-500 hover:text-white"
                     }`}
-                    initial={{ opacity: 0, x: -30 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -30 }}
-                    transition={{ delay: i * 0.08, duration: 0.3 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ delay: i * 0.1, duration: 0.4, ease: "expo.out" }}
                   >
                     {link.label}
                   </motion.a>

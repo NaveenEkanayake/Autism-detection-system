@@ -84,14 +84,14 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
     if (!sectionRef?.current) return;
 
     const ctx = gsap.context(() => {
-      gsap.set(headerRef.current, { y: 60, opacity: 0 });
+      gsap.set(headerRef.current, { y: 60, opacity: 0, scale: 0.95 });
 
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: sectionRef.current,
           start: "top 80%",
           end: "top 20%",
-          scrub: 2,
+          scrub: 1.5,
           onEnter: () => { setActiveSection?.(2); setShowBg?.(true); },
           onEnterBack: () => { setActiveSection?.(2); setShowBg?.(true); },
           onLeaveBack: () => { setActiveSection?.(1); }
@@ -99,37 +99,21 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
       });
 
       tl.to(headerRef.current, {
-        y: 0, opacity: 1, duration: 2, ease: "expo.out",
+        y: 0, opacity: 1, scale: 1, duration: 2, ease: "expo.out",
       });
 
+      // --- Cinematic Entrance ---
       gsap.fromTo(
         ".feature-card",
-        { y: 80, opacity: 0, scale: 0.93 },
+        { y: 100, opacity: 0, scale: 0.9, filter: "blur(10px)" },
         {
-          y: 0, opacity: 1, scale: 1,
-          duration: 2, stagger: 0.15, ease: "expo.out",
+          y: 0, opacity: 1, scale: 1, filter: "blur(0px)",
+          duration: 2, stagger: 0.1, ease: "power4.out",
           scrollTrigger: {
             trigger: sectionRef.current,
             start: "top 70%",
             end: "bottom bottom",
-            scrub: 2,
-            onLeave: () => setShowBg?.(false),
-            onEnterBack: () => setShowBg?.(true)
-          },
-        }
-      );
-
-      gsap.fromTo(
-        ".feature-card",
-        { y: 80, opacity: 0, scale: 0.93 },
-        {
-          y: 0, opacity: 1, scale: 1,
-          duration: 2, stagger: 0.15, ease: "expo.out",
-          scrollTrigger: {
-            trigger: sectionRef.current,
-            start: "top 70%",
-            end: "bottom bottom",
-            scrub: 2,
+            scrub: 1,
             onLeave: () => setShowBg?.(false),
             onEnterBack: () => setShowBg?.(true)
           },
@@ -143,29 +127,32 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
   const isDark = theme === "dark";
 
   return (
-    <section className="min-h-screen py-16 md:py-20 px-4" style={{ backgroundColor: "var(--landing-bg)" }}>
-      <div className="max-w-7xl mx-auto">
-        <div ref={headerRef} className="text-center mb-12 md:mb-16">
+    <section className="min-h-screen py-24 md:py-32 px-4 relative overflow-hidden bg-fixed bg-center bg-cover" style={{ backgroundColor: "var(--landing-bg)", backgroundImage: "url('https://images.unsplash.com/photo-1635070041078-e363dbe005cb?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')" }}>
+      {/* Parallax Overlay */}
+      <div className="absolute inset-0 bg-[var(--landing-bg)] opacity-80" />
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div ref={headerRef} className="text-center mb-16 md:mb-24">
           <span className="inline-block text-xs uppercase font-bold tracking-widest text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20 mb-6">
             Platform Features
           </span>
-          <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-6" style={{ color: "var(--landing-text)" }}>
+          <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8" style={{ color: "var(--landing-text)" }}>
             Everything You Need for{" "}
             <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
               Early Detection
             </span>
           </h2>
-          <p className="text-lg max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>
+          <p className="text-lg md:text-xl max-w-3xl mx-auto leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>
             Advanced AI-powered detection, evidence-based assessments, health monitoring, and clinical reporting all in one integrated platform.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
           {features.map((feature, index) => {
             const shaderConfig = getShaderConfig(index);
             return (
-              <div key={index} className="feature-card relative h-72 md:h-80 group">
-                <div className="absolute inset-0 rounded-3xl overflow-hidden">
+              <div key={index} className={`feature-card relative h-80 md:h-96 group perspective-1000`}>
+                <div className="absolute inset-0 rounded-[32px] overflow-hidden shadow-2xl transition-transform duration-500 group-hover:scale-105">
                   <Warp
                     style={{ height: "100%", width: "100%" }}
                     proportion={shaderConfig.proportion}
@@ -182,17 +169,17 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
                   />
                 </div>
 
-                <div className="relative z-10 p-6 md:p-8 rounded-3xl h-full flex flex-col backdrop-blur-sm border transition-all duration-500" style={{ 
-                  backgroundColor: isDark ? "rgba(0,0,0,0.5)" : "rgba(255,255,255,0.7)", 
+                <div className="relative z-10 p-8 md:p-10 rounded-[32px] h-full flex flex-col backdrop-blur-xl border transition-all duration-500 group-hover:border-blue-400/50" style={{ 
+                  backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)", 
                   borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" 
                 }}>
-                  <div className="mb-4 md:mb-6">{feature.icon}</div>
-                  <h3 className="text-xl md:text-2xl font-bold mb-3" style={{ color: "var(--landing-text)" }}>{feature.title}</h3>
-                  <p className="text-sm md:text-base leading-relaxed flex-grow" style={{ color: "var(--landing-text-secondary)" }}>
+                  <div className="mb-6 p-3 rounded-2xl bg-white/10 w-fit shadow-inner">{feature.icon}</div>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-4" style={{ color: "var(--landing-text)" }}>{feature.title}</h3>
+                  <p className="text-base md:text-lg leading-relaxed flex-grow opacity-90" style={{ color: "var(--landing-text-secondary)" }}>
                     {feature.description}
                   </p>
-                  <div className="mt-4 md:mt-6 flex items-center text-sm font-semibold text-blue-400 group-hover:text-blue-300 transition-colors">
-                    <span className="mr-2">Learn more</span>
+                  <div className="mt-6 flex items-center text-sm font-bold text-blue-400 group-hover:text-blue-300 transition-all duration-300 gap-2 translate-x-0 group-hover:translate-x-2">
+                    <span>Learn more</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                     </svg>

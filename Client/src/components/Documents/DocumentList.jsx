@@ -6,8 +6,8 @@ export default function DocumentList({ documents, loading, onDelete }) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="glass-card p-4 animate-pulse">
-            <div className="h-4 bg-white/5 rounded w-3/4" />
+          <div key={i} className="p-4 rounded-2xl border animate-pulse" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <div className="h-4 rounded w-3/4" style={{ background: "var(--hover-bg)" }} />
           </div>
         ))}
       </div>
@@ -16,9 +16,9 @@ export default function DocumentList({ documents, loading, onDelete }) {
 
   if (documents.length === 0) {
     return (
-      <div className="glass-card p-10 text-center border-dashed border-white/10">
-        <FolderOpen className="w-10 h-10 text-slate-700 mx-auto mb-3" />
-        <p className="text-slate-500">No documents uploaded yet.</p>
+      <div className="p-10 text-center rounded-2xl border border-dashed" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+        <FolderOpen className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
+        <p style={{ color: "var(--text-secondary)" }}>No documents uploaded yet.</p>
       </div>
     );
   }

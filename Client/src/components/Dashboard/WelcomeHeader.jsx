@@ -17,19 +17,25 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative overflow-hidden rounded-2xl p-6 border"
+      className="relative overflow-hidden rounded-2xl p-6 md:p-7 border"
       style={{
         background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))",
         borderColor: "var(--card-border)",
       }}
     >
       <motion.div
-        className="absolute -top-16 -right-16 w-40 h-40 rounded-full opacity-10"
+        className="absolute -top-16 -right-16 w-48 h-48 rounded-full opacity-10"
         style={{ background: "radial-gradient(circle, rgba(59,147,245,0.4), transparent 70%)" }}
         animate={{ scale: [1, 1.1, 1] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       />
-      <div className="flex items-start justify-between relative z-[1]">
+      <motion.div
+        className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full opacity-5"
+        style={{ background: "radial-gradient(circle, rgba(20,184,166,0.4), transparent 70%)" }}
+        animate={{ scale: [1, 1.15, 1] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 relative z-[1]">
         <div className="flex items-center gap-4">
           <motion.div
             initial={{ scale: 0, rotate: -180 }}
@@ -40,12 +46,12 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
           >
             {patient.name[0]}
           </motion.div>
-          <div>
+          <div className="min-w-0">
             <motion.h2
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
-              className="font-display text-2xl font-bold"
+              className="font-display text-xl md:text-2xl font-bold truncate"
               style={{ color: "var(--text-primary)" }}
             >
               {patient.name}
@@ -53,7 +59,7 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
             <motion.div
               initial="hidden"
               animate="visible"
-              className="flex items-center gap-3 mt-1"
+              className="flex flex-wrap items-center gap-2 mt-2"
             >
               {[
                 { label: `${age} old`, className: "text-[10px] font-bold tracking-wider uppercase px-2.5 py-1 rounded-full", style: { background: "rgba(59,147,245,0.15)", color: "rgb(96,165,250)" } },
@@ -76,7 +82,7 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
         <motion.button
           whileHover={{ scale: 1.03, y: -1 }}
           whileTap={{ scale: 0.97 }}
-          className="flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all duration-300"
+          className="flex items-center justify-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all duration-300 shadow-lg shadow-blue-500/15 w-full sm:w-auto"
           style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
           onClick={() => onNavigate("screening")}
         >
@@ -89,12 +95,16 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
 
 export function EmptyState({ onNavigate }) {
   return (
-    <div className="glass-card p-8 text-center border-dashed border-white/20">
-      <div className="w-12 h-12 rounded-xl bg-blue-500/15 flex items-center justify-center mx-auto mb-3">
-        <Zap className="w-6 h-6 text-blue-400" />
+    <div className="p-8 md:p-10 text-center rounded-2xl border border-dashed" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+      <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-4" style={{ background: "rgba(59,147,245,0.15)" }}>
+        <Zap className="w-7 h-7 text-blue-400" />
       </div>
-      <p className="text-slate-400 mb-4">No child profile found. Add one to get started.</p>
-      <button className="btn-primary" onClick={() => onNavigate("onboarding")}>
+      <p className="mb-5 text-base" style={{ color: "var(--text-secondary)" }}>No child profile found. Add one to get started.</p>
+      <button
+        className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-blue-500/15"
+        style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
+        onClick={() => onNavigate("onboarding")}
+      >
         <Plus className="w-4 h-4" /> Add Child Profile
       </button>
     </div>

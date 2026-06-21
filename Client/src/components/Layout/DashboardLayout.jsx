@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Brain, Camera, TrendingUp, FileText,
-  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sun
+  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sun, Menu
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
-import { usePatients } from "../../hooks/usePatients";
+import { usePatients } from "../../hooks/PatientsContext";
 import { useTheme } from "../../hooks/useTheme";
 import GradientButton from "../ui/GradientButton";
 
@@ -26,31 +26,6 @@ const QUICK_STATS = [
 ];
 
 const SIDEBAR_WIDTH = 280;
-
-function HamburgerIcon({ open }) {
-  return (
-    <div className="relative w-5 h-5 flex items-center justify-center">
-      <motion.span
-        className="absolute h-[2px] w-5 rounded-full"
-        style={{ background: "var(--text-secondary)" }}
-        animate={open ? { rotate: 45, y: 0 } : { rotate: 0, y: -5 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      />
-      <motion.span
-        className="absolute h-[2px] w-5 rounded-full"
-        style={{ background: "var(--text-secondary)" }}
-        animate={open ? { opacity: 0, x: 10 } : { opacity: 1, x: 0 }}
-        transition={{ duration: 0.2 }}
-      />
-      <motion.span
-        className="absolute h-[2px] w-5 rounded-full"
-        style={{ background: "var(--text-secondary)" }}
-        animate={open ? { rotate: -45, y: 0 } : { rotate: 0, y: 5 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      />
-    </div>
-  );
-}
 
 function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
@@ -72,7 +47,7 @@ function Sidebar({ open, onClose }) {
       initial={false}
       animate={{ x: open ? 0 : -SIDEBAR_WIDTH }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="fixed top-0 left-0 z-50 h-full flex flex-col border-r"
+      className="fixed top-0 left-0 z-50 h-full flex flex-col border-r shadow-2xl shadow-black/10"
       style={{
         width: SIDEBAR_WIDTH,
         background: "var(--sidebar-bg)",
@@ -92,7 +67,7 @@ function Sidebar({ open, onClose }) {
       {/* User info */}
       <div className="px-6 py-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md">
             {user?.name?.[0]?.toUpperCase() || "U"}
           </div>
           <div className="overflow-hidden">
@@ -104,17 +79,17 @@ function Sidebar({ open, onClose }) {
 
       {/* Active Patient */}
       {activePatient && (
-      <div className="mx-4 mt-4 p-3 rounded-xl border" style={{ borderColor: "var(--sidebar-border)", background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))" }}>
+      <div className="mx-4 mt-4 p-3.5 rounded-xl border" style={{ borderColor: "var(--sidebar-border)", background: "linear-gradient(135deg, rgba(59,147,245,0.08), rgba(20,184,166,0.06))" }}>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-white flex-shrink-0"
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-white flex-shrink-0 shadow-md"
             style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}>
             {activePatient.name[0]}
           </div>
           <div className="overflow-hidden">
             <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{activePatient.name}</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="badge-blue text-[10px] px-1.5 py-0.5">{ageLabel}</span>
-              <span className="badge-teal text-[10px] px-1.5 py-0.5 capitalize">{activePatient.sex}</span>
+            <div className="flex items-center gap-1.5 mt-1">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ background: "rgba(59,147,245,0.15)", color: "#60a5fa" }}>{ageLabel}</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium capitalize" style={{ background: "rgba(20,184,166,0.15)", color: "#2dd4bf" }}>{activePatient.sex}</span>
             </div>
           </div>
         </div>
@@ -131,25 +106,12 @@ function Sidebar({ open, onClose }) {
             className={({ isActive }) =>
               "flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border " +
               (isActive
-                ? "border-blue-500/20"
-                : "border-transparent hover:border-blue-500/20")
+                ? "border-blue-500/20 text-[var(--text-primary)]"
+                : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-blue-500/20 hover:bg-gradient-to-r hover:from-blue-500/15 hover:to-emerald-500/10")
             }
             style={({ isActive }) => ({
-              color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
               background: isActive ? "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))" : "",
             })}
-            onMouseEnter={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))";
-                e.currentTarget.style.color = "var(--text-primary)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isActive) {
-                e.currentTarget.style.background = "";
-                e.currentTarget.style.color = "var(--text-secondary)";
-              }
-            }}
           >
             {({ isActive }) => (
               <>
@@ -180,12 +142,12 @@ function Sidebar({ open, onClose }) {
 
       {/* Quick Stats */}
       <div className="px-4 py-4 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
-        <div className="grid grid-cols-4 gap-1">
+        <div className="grid grid-cols-4 gap-2">
           {QUICK_STATS.map(({ label, value, color, icon: Icon }) => (
-            <div key={label} className="text-center">
-              <Icon className={"w-3.5 h-3.5 mx-auto mb-0.5 " + color} />
-              <p className={"text-xs font-bold " + color}>{value}</p>
-              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>{label}</p>
+            <div key={label} className="text-center p-1.5 rounded-lg transition-colors hover:bg-white/5">
+              <Icon className={"w-4 h-4 mx-auto mb-1 " + color} />
+              <p className={"text-sm font-bold leading-none " + color}>{value}</p>
+              <p className="text-[9px] mt-1 leading-tight" style={{ color: "var(--text-muted)" }}>{label}</p>
             </div>
           ))}
         </div>
@@ -196,6 +158,21 @@ function Sidebar({ open, onClose }) {
 
 export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 1024);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile && sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [isMobile, sidebarOpen]);
 
   return (
     <div className="min-h-screen" style={{ background: "var(--page-bg)", color: "var(--text-primary)" }}>
@@ -206,7 +183,7 @@ export default function DashboardLayout() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-black/60"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -216,26 +193,26 @@ export default function DashboardLayout() {
 
       <button
         onClick={() => setSidebarOpen((p) => !p)}
-        className="fixed top-4 z-[60] w-9 h-9 rounded-xl flex items-center justify-center transition-colors"
+        className="fixed top-4 z-[60] w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg backdrop-blur-sm"
         style={{
-          left: sidebarOpen ? "292px" : "16px",
+          left: !isMobile && sidebarOpen ? "292px" : "16px",
           background: "var(--card-bg)",
           borderColor: "var(--card-border)",
           borderWidth: 1,
         }}
         aria-label="Toggle sidebar"
       >
-        <HamburgerIcon open={sidebarOpen} />
+        <Menu className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
       </button>
 
-      <div
+      <main
         className="transition-all duration-300 ease-in-out"
-        style={{ marginLeft: sidebarOpen ? "280px" : "0px" }}
+        style={{ marginLeft: !isMobile && sidebarOpen ? "280px" : "0px" }}
       >
-        <div className="pt-4">
+        <div>
           <Outlet />
         </div>
-      </div>
+      </main>
     </div>
   );
 }

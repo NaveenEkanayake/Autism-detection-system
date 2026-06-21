@@ -15,8 +15,12 @@ const INJECTED_STYLES = `
   .gsap-reveal { visibility: hidden; }
   .film-grain {
       position: absolute; inset: 0; width: 100%; height: 100%;
-      pointer-events: none; z-index: 50; opacity: 0.04; mix-blend-mode: overlay;
+      pointer-events: none; z-index: 100; opacity: 0.03; mix-blend-mode: overlay;
       background: url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+  }
+  .cinematic-vignette {
+      position: absolute; inset: 0; pointer-events: none; z-index: 90;
+      background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%);
   }
   .bg-grid-theme {
       background-size: 60px 60px;
@@ -28,12 +32,13 @@ const INJECTED_STYLES = `
   }
   .premium-depth-card {
       background: var(--landing-card);
-      box-shadow: var(--landing-card-shadow);
+      box-shadow: var(--landing-card-shadow), 0 0 100px rgba(0,0,0,0.3);
       border: 1px solid var(--landing-card-border);
+      backdrop-filter: blur(10px);
   }
   .card-sheen {
       position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 50;
-      background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(59,130,246,0.07) 0%, transparent 40%);
+      background: radial-gradient(1000px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(59,130,246,0.12) 0%, transparent 50%);
   }
   .iphone-bezel {
       background-color: var(--landing-bezel);
@@ -62,8 +67,8 @@ function AutismScreeningHero({
   cardDescription = "Aura Track utilizes an automated multi-modal screening pipeline specifically calibrated for early pediatric cohorts aged 3 to 5 years...",
   metricValue = 94.8,
   metricLabel = "Model Sensitivity Index (%)",
-  setActiveSection, // Hooked state setter
-  setShowBg         // Hooked state setter
+  setActiveSection,
+  setShowBg
 }) {
   const containerRef = useRef(null);
   const mainCardRef = useRef(null);
@@ -97,10 +102,10 @@ function AutismScreeningHero({
           const yVal = (e.clientY / window.innerHeight - 0.5) * 2;
 
           gsap.to(mockupRef.current, {
-            rotationY: xVal * 10,
-            rotationX: -yVal * 10,
+            rotationY: xVal * 12,
+            rotationX: -yVal * 12,
             ease: "power3.out",
-            duration: 1.2,
+            duration: 1.5,
           });
         }
       });
@@ -115,39 +120,35 @@ function AutismScreeningHero({
 
   useEffect(() => {
     const ctx = gsap.context(() => {
-      /* ── Initial States ── */
-      gsap.set(".text-track", { autoAlpha: 0, y: 60, scale: 0.9, filter: "blur(20px)" });
-      gsap.set(".text-days", { autoAlpha: 1, clipPath: "inset(0 100% 0 0)" });
-      gsap.set(".main-card", { y: window.innerHeight + 200, autoAlpha: 1 });
+      /* ── CINEMATIC INITIAL STATES ── */
+      gsap.set(".text-track", { autoAlpha: 0, y: 100, scale: 0.8, filter: "blur(30px)" });
+      gsap.set(".text-days", { autoAlpha: 0, scale: 0.9, clipPath: "inset(0 100% 0 0)" });
+      gsap.set(".main-card", { y: window.innerHeight * 0.8, scale: 0.6, autoAlpha: 0 });
       gsap.set([".card-left-text", ".card-right-text", ".mockup-scroll-wrapper", ".floating-badge", ".phone-widget"], { autoAlpha: 0 });
       gsap.set(".about-carousel-wrapper", { y: window.innerHeight, autoAlpha: 0 });
 
-      /* ── Entrance Sequence ── */
-      const introTl = gsap.timeline({ delay: 0.2 });
+      const introTl = gsap.timeline({ delay: 0.5 });
       introTl
-        .to(".text-track", { duration: 1.5, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", ease: "expo.out" })
-        .to(".text-days", { duration: 1.2, clipPath: "inset(0 0% 0 0)", ease: "power4.inOut" }, "-=0.8");
+        .to(".text-track", { duration: 2, autoAlpha: 1, y: 0, scale: 1, filter: "blur(0px)", ease: "expo.out" })
+        .to(".text-days", { duration: 1.5, autoAlpha: 1, scale: 1, clipPath: "inset(0 0% 0 0)", ease: "power4.inOut" }, "-=1.2")
+        .to(".main-card", { duration: 2.5, autoAlpha: 1, y: 0, scale: 1, ease: "expo.out" }, "-=1");
 
-      /* ── Master Scroll Timeline ── */
       const scrollTl = gsap.timeline({
         scrollTrigger: {
           trigger: containerRef.current,
           start: "top top",
           end: () => `+=${HERO_PHASE_UNITS * 1000 + CAROUSEL_SCROLL_PX}`,
           pin: true,
-          scrub: 1.5,
+          scrub: 2,
           anticipatePin: 1,
           invalidateOnRefresh: true,
           onUpdate: (self) => {
             const progress = self.progress;
 
-            // ── COORDINATING UNIFIED BACKGROUND STATES ACCORDING TO TIMELINE REACH ──
             if (progress < 0.38) {
-              // Phase 0: Pinned Dashboard Mockup active
               setActiveSection?.(0);
               setShowBg?.(false);
             } else if (progress >= 0.38 && progress < 0.95) {
-              // Phase 1: Carousel Slides active -> Trigger 3D Backdrop Viewport
               setActiveSection?.(1);
               setShowBg?.(true);
             }
@@ -173,39 +174,36 @@ function AutismScreeningHero({
       });
 
       scrollTl
-        /* ── Phase A: Hero content reveal ── */
-        .to(".hero-text-wrapper", { opacity: 0.3, ease: "power1.inOut", duration: 2 }, 0)
-        .to(".main-card", { y: 0, ease: "power3.inOut", duration: 2 }, 0)
-        .to(".main-card", { width: "100%", height: "100%", borderRadius: "0px", ease: "power2.inOut", duration: 1.5 })
+        /* ── PARALLAX LAYER REVEAL ── */
+        .to(".hero-text-wrapper", { y: -200, autoAlpha: 0.2, ease: "power1.inOut", duration: 2 }, 0)
+        .to(".main-card", { width: "100%", height: "100%", borderRadius: "0px", ease: "power2.inOut", duration: 2 }, 0.5)
         .fromTo(".mockup-scroll-wrapper",
-          { y: 250, autoAlpha: 0, scale: 0.7 },
-          { y: 0, autoAlpha: 1, scale: 1, ease: "expo.out", duration: 2.5 }, "-=0.8"
+          { y: 300, autoAlpha: 0, scale: 0.6 },
+          { y: 0, autoAlpha: 1, scale: 1, ease: "expo.out", duration: 3 }, "-=1"
         )
-        .fromTo(".phone-widget", { y: 30, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.12, ease: "back.out(1.2)", duration: 1.2 }, "-=1.5")
-        .to(".progress-ring", { strokeDashoffset: 0, duration: 2, ease: "power3.inOut" }, "-=1.2")
-        .to(".counter-val", { innerHTML: metricValue, snap: { innerHTML: 0.1 }, duration: 2, ease: "expo.out" }, "-=2.0")
-        .fromTo(".floating-badge", { y: 80, autoAlpha: 0, scale: 0.8 }, { y: 0, autoAlpha: 1, scale: 1, ease: "back.out(1.2)", duration: 1.2, stagger: 0.15 }, "-=1.8")
-        .fromTo(".card-left-text", { x: -40, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "power4.out", duration: 1.5 }, "-=1.5")
-        .fromTo(".card-right-text", { x: 40, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "expo.out", duration: 1.5 }, "<")
+        .fromTo(".phone-widget", { y: 50, autoAlpha: 0 }, { y: 0, autoAlpha: 1, stagger: 0.15, ease: "back.out(1.5)", duration: 1.5 }, "-=2")
+        .to(".progress-ring", { strokeDashoffset: 0, duration: 2.5, ease: "power3.inOut" }, "-=1.5")
+        .to(".counter-val", { innerHTML: metricValue, snap: { innerHTML: 0.1 }, duration: 2.5, ease: "expo.out" }, "-=2.5")
+        .fromTo(".floating-badge", { y: 100, autoAlpha: 0, scale: 0.7 }, { y: 0, autoAlpha: 1, scale: 1, ease: "back.out(1.5)", duration: 1.5, stagger: 0.2 }, "-=2")
+        .fromTo(".card-left-text", { x: -60, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "power4.out", duration: 2 }, "-=2")
+        .fromTo(".card-right-text", { x: 60, autoAlpha: 0 }, { x: 0, autoAlpha: 1, ease: "expo.out", duration: 2 }, "<")
 
-        /* ── Hold ── */
         .to({}, { duration: 2 })
 
-        /* ── Phase B: Exit hero content, reveal carousel ── */
+        /* ── LAYER TRANSITION (Sinking Effect) ── */
         .to([".mockup-scroll-wrapper", ".floating-badge", ".card-left-text", ".card-right-text"], {
-          scale: 0.95, y: -20, autoAlpha: 0, ease: "power2.in", duration: 1.2,
+          scale: 0.8, y: -50, autoAlpha: 0, ease: "power2.in", duration: 1.5,
         })
         .to(".main-card", {
-          y: -window.innerHeight - 100, opacity: 0, ease: "power2.inOut", duration: 2,
-        }, "-=0.8")
-        .to(".hero-text-wrapper", { y: -200, autoAlpha: 0, ease: "power2.inOut", duration: 1.5 }, "<")
+          scale: 0.85, opacity: 0, y: -100, ease: "power2.inOut", duration: 2,
+        }, "-=1")
+        .to(".hero-text-wrapper", { y: -400, autoAlpha: 0, ease: "power2.inOut", duration: 2 }, "<")
 
-        /* ── Phase C: Carousel slides up into view ── */
+        /* ── LAYER TRANSITION (Next Section Slides Over) ── */
         .to(".about-carousel-wrapper", {
-          y: 0, autoAlpha: 1, ease: "power3.out", duration: 2.5,
-        }, "-=1.5")
+          y: 0, autoAlpha: 1, scale: 1, ease: "power3.out", duration: 3,
+        }, "-=2")
 
-        /* ── Phase D & E: Holds ── */
         .to({}, { duration: CAROUSEL_SLIDES * 2 + 3 })
         .to({}, { duration: 3 });
 
@@ -219,34 +217,34 @@ function AutismScreeningHero({
       id="hero-section"
       ref={containerRef}
       className="relative w-full overflow-hidden bg-transparent text-white font-sans antialiased"
-      style={{ perspective: "1500px" }}
+      style={{ perspective: "2000px" }}
     >
       <style dangerouslySetInnerHTML={{ __html: INJECTED_STYLES }} />
       <div className="film-grain" aria-hidden="true" />
+      <div className="cinematic-vignette" aria-hidden="true" />
 
-      {/* ── HERO VIEWPORT PLANE ── */}
-      <div className="relative w-full h-screen overflow-hidden" style={{ perspective: "1500px" }}>
+      <div className="relative w-full h-screen overflow-hidden" style={{ perspective: "2000px" }}>
         <div className="hero-text-wrapper absolute z-10 inset-0 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform">
           <div className="text-track gsap-reveal">
             <AnimatedText
               text="Advanced Pediatric Tracking"
-              textClassName="text-[1.4rem] sm:text-[2rem] md:text-[3rem] lg:text-[4.5rem] font-bold tracking-tight text-white drop-shadow-md py-2"
-              gradientColors="linear-gradient(90deg, #4b5563, #ffffff, #4b5563)"
+              textClassName="text-[1.6rem] sm:text-[2.2rem] md:text-[3.2rem] lg:text-[4.8rem] font-bold tracking-tight text-white drop-shadow-2xl py-2"
+              gradientColors="linear-gradient(90deg, #6b7280, #ffffff, #6b7280)"
             />
           </div>
-          <div className="text-days gsap-reveal mt-[-10px] md:mt-[-20px]">
+          <div className="text-days gsap-reveal mt-[-15px] md:mt-[-25px]">
             <AnimatedText
               text="AURA TRACK ENGINE"
-              textClassName="text-[2.5rem] sm:text-[3.5rem] md:text-[4.5rem] lg:text-[5.5rem] font-black tracking-tighter"
-              gradientColors="linear-gradient(90deg, #1d4ed8, #60a5fa, #1d4ed8)"
+              textClassName="text-[2.8rem] sm:text-[3.8rem] md:text-[4.8rem] lg:text-[6rem] font-black tracking-tighter"
+              gradientColors="linear-gradient(90deg, #1e40af, #60a5fa, #1e40af)"
             />
           </div>
         </div>
 
-        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" style={{ perspective: "1500px" }}>
+        <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none" style={{ perspective: "2000px" }}>
           <div
             ref={mainCardRef}
-            className="main-card premium-depth-card relative overflow-hidden gsap-reveal flex items-center justify-center pointer-events-auto w-[94vw] md:w-[85vw] h-[94vh] md:h-[85vh] rounded-[24px] md:rounded-[36px]"
+            className="main-card premium-depth-card relative overflow-hidden gsap-reveal flex items-center justify-center pointer-events-auto w-[92vw] md:w-[80vw] h-[92vh] md:h-[80vh] rounded-[32px] md:rounded-[48px] will-change-transform"
           >
             <div className="card-sheen" aria-hidden="true" />
             <DiagnosticMockup
@@ -259,8 +257,6 @@ function AutismScreeningHero({
         </div>
       </div>
 
-      {/* ── ABOUT SECTION VIEWPORT PLANE ── */}
-      {/* Stripped inline visibility styles to let autoAlpha process properly */}
       <div id="about" className="about-carousel-wrapper absolute inset-0 z-30 bg-transparent">
         <AboutUs embedded onTimelineReady={handleTimelineReady} />
       </div>

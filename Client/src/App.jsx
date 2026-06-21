@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import DashboardPage from "./pages/DashboardPage";
 import SdqPage from "./pages/SdqPage";
@@ -7,27 +7,31 @@ import HealthTrackerPage from "./pages/HealthTrackerPage";
 import DocumentLibraryPage from "./pages/DocumentLibraryPage";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 import ProtectedRoute from "./components/Layout/ProtectedRoute";
-import { ThemeProvider } from "./hooks/useTheme";
-import { AuthProvider } from "./hooks/useAuth";
+import { PatientsProvider } from "./hooks/PatientsContext";
 import ToastProvider from "./components/ui/toast";
+import { AuthProvider } from "./hooks/useAuth";
+import { ThemeProvider } from "./hooks/useTheme";
 
 function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <ToastProvider />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route element={<ProtectedRoute />}>
-            <Route element={<DashboardLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/sdq" element={<SdqPage />} />
-              <Route path="/vision" element={<VisionPage />} />
-              <Route path="/health" element={<HealthTrackerPage />} />
-              <Route path="/documents" element={<DocumentLibraryPage />} />
+        <PatientsProvider>
+          <ToastProvider />
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route element={<ProtectedRoute />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/sdq" element={<SdqPage />} />
+                <Route path="/vision" element={<VisionPage />} />
+                <Route path="/health" element={<HealthTrackerPage />} />
+                <Route path="/documents" element={<DocumentLibraryPage />} />
+              </Route>
             </Route>
-          </Route>
-        </Routes>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </PatientsProvider>
       </AuthProvider>
     </ThemeProvider>
   );

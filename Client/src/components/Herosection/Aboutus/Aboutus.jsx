@@ -16,7 +16,7 @@ function AboutUs({ embedded = false, onTimelineReady }) {
   useSlideAnimation(containerRef, headerRef, embedded, onTimelineReady, setActiveIndex);
 
   return (
-    <div ref={containerRef} className={`relative w-full ${embedded ? "h-full" : ""} overflow-hidden font-sans`} style={embedded ? undefined : { height: "100vh", backgroundColor: isDark ? "#030509" : "var(--landing-bg)" }}>
+    <div id="about" ref={containerRef} className={`relative w-full ${embedded ? "h-full" : ""} overflow-hidden font-sans`} style={embedded ? undefined : { height: "100vh", backgroundColor: isDark ? "#030509" : "var(--landing-bg)" }}>
       
       {/* Overlays */}
       {!embedded && (
