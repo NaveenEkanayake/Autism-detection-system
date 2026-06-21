@@ -10,16 +10,21 @@ const CAMERA_POSITIONS = [
 /* Spring damper smoothing factor – lower = heavier cinematic lag */
 const SMOOTHING_FACTOR = 0.04;
 
-function Background({ activeSection = 0 }) {
+function Background({ activeSection = 0, theme = "dark" }) {
   const canvasRef = useRef(null);
   const smoothCamera = useRef({ x: 0, y: 30, z: 250, lookY: 0 });
   const targetCamera = useRef({ x: 0, y: 30, z: 250, lookY: 0 });
   const mountRef = useRef({ mountains: [], starField: null });
   const activeSectionRef = useRef(activeSection);
+  const themeRef = useRef(theme);
 
   useEffect(() => {
     activeSectionRef.current = activeSection;
   }, [activeSection]);
+
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -28,8 +33,16 @@ function Background({ activeSection = 0 }) {
     let animationId;
 
     /* ── Scene Setup ── */
+    const isDark = themeRef.current === "dark";
+    const bgColor = isDark ? 0x030509 : 0xdce6f0;
+    const fogColor = isDark ? 0x030509 : 0xdce6f0;
+    const fogDensity = isDark ? 0.0012 : 0.0015;
+    const mountainColors = isDark
+      ? [0x0a0e1a, 0x070b15, 0x050912, 0x030710]
+      : [0xc8d4e6, 0xb8c8dd, 0xa8bcd4, 0x98b0cb];
+
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x030509, 0.0012);
+    scene.fog = new THREE.FogExp2(fogColor, fogDensity);
 
     const camera = new THREE.PerspectiveCamera(
       70,
@@ -46,14 +59,15 @@ function Background({ activeSection = 0 }) {
     const renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
-      alpha: false,
+      alpha: true,
     });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x030509, 1);
+    renderer.setClearColor(bgColor, 0);
 
     /* ── Starfield (deep layer – slowest parallax) ── */
-    const starCount = 3500;
+    const isLightMode = !isDark;
+    const starCount = isLightMode ? 800 : 3500;
     const starGeo = new THREE.BufferGeometry();
     const starPos = new Float32Array(starCount * 3);
     const starCol = new Float32Array(starCount * 3);
@@ -63,7 +77,7 @@ function Background({ activeSection = 0 }) {
       starPos[i + 1] = (Math.random() - 0.5) * 800;
       starPos[i + 2] = (Math.random() - 0.5) * 2000 - 400;
 
-      const brightness = 0.6 + Math.random() * 0.4;
+      const brightness = isLightMode ? 0.15 + Math.random() * 0.1 : 0.6 + Math.random() * 0.4;
       starCol[i] = brightness * 0.9;
       starCol[i + 1] = brightness * 0.95;
       starCol[i + 2] = brightness;
@@ -73,10 +87,10 @@ function Background({ activeSection = 0 }) {
     starGeo.setAttribute("color", new THREE.BufferAttribute(starCol, 3));
 
     const starMat = new THREE.PointsMaterial({
-      size: 1.8,
+      size: isLightMode ? 1.0 : 1.8,
       vertexColors: true,
       transparent: true,
-      opacity: 0.65,
+      opacity: isLightMode ? 0.25 : 0.65,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -86,7 +100,7 @@ function Background({ activeSection = 0 }) {
     mountRef.current.starField = starField;
 
     /* ── Nebula Glow Particles (mid layer) ── */
-    const nebulaCount = 400;
+    const nebulaCount = isLightMode ? 200 : 400;
     const nebulaGeo = new THREE.BufferGeometry();
     const nebulaPos = new Float32Array(nebulaCount * 3);
     const nebulaCol = new Float32Array(nebulaCount * 3);
@@ -96,19 +110,25 @@ function Background({ activeSection = 0 }) {
       nebulaPos[i + 1] = (Math.random() - 0.5) * 300 + 40;
       nebulaPos[i + 2] = (Math.random() - 0.5) * 1200 - 200;
 
-      nebulaCol[i] = 0.15 + Math.random() * 0.1;     // R
-      nebulaCol[i + 1] = 0.2 + Math.random() * 0.15;  // G
-      nebulaCol[i + 2] = 0.8 + Math.random() * 0.2;   // B (blue-ish)
+      if (isLightMode) {
+        nebulaCol[i] = 0.6 + Math.random() * 0.2;
+        nebulaCol[i + 1] = 0.7 + Math.random() * 0.2;
+        nebulaCol[i + 2] = 1.0 + Math.random() * 0.0;
+      } else {
+        nebulaCol[i] = 0.15 + Math.random() * 0.1;
+        nebulaCol[i + 1] = 0.2 + Math.random() * 0.15;
+        nebulaCol[i + 2] = 0.8 + Math.random() * 0.2;
+      }
     }
 
     nebulaGeo.setAttribute("position", new THREE.BufferAttribute(nebulaPos, 3));
     nebulaGeo.setAttribute("color", new THREE.BufferAttribute(nebulaCol, 3));
 
     const nebulaMat = new THREE.PointsMaterial({
-      size: 8,
+      size: isLightMode ? 4 : 8,
       vertexColors: true,
       transparent: true,
-      opacity: 0.15,
+      opacity: isLightMode ? 0.08 : 0.15,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
     });
@@ -120,12 +140,19 @@ function Background({ activeSection = 0 }) {
        Each layer has a different Z-depth and speed multiplier.
        Foreground layers move faster → creates depth illusion. */
     const mountainLayers = [];
-    const layerConfigs = [
-      { z: -100, y: -40, color: 0x0a0e1a, opacity: 0.6, speed: 1.0 },
-      { z: -250, y: -55, color: 0x070b15, opacity: 0.5, speed: 1.5 },
-      { z: -500, y: -70, color: 0x050912, opacity: 0.4, speed: 2.2 },
-      { z: -800, y: -85, color: 0x030710, opacity: 0.3, speed: 3.0 },
-    ];
+    const layerConfigs = isDark
+      ? [
+          { z: -100, y: -40, color: 0x0a0e1a, opacity: 0.6, speed: 1.0 },
+          { z: -250, y: -55, color: 0x070b15, opacity: 0.5, speed: 1.5 },
+          { z: -500, y: -70, color: 0x050912, opacity: 0.4, speed: 2.2 },
+          { z: -800, y: -85, color: 0x030710, opacity: 0.3, speed: 3.0 },
+        ]
+      : [
+          { z: -100, y: -40, color: 0xd0dce8, opacity: 0.5, speed: 1.0 },
+          { z: -250, y: -55, color: 0xc0ccdc, opacity: 0.4, speed: 1.5 },
+          { z: -500, y: -70, color: 0xb0bcd0, opacity: 0.3, speed: 2.2 },
+          { z: -800, y: -85, color: 0xa0acc4, opacity: 0.2, speed: 3.0 },
+        ];
 
     layerConfigs.forEach((config) => {
       const width = 1200;
@@ -166,7 +193,7 @@ function Background({ activeSection = 0 }) {
     mountRef.current.mountains = mountainLayers;
 
     /* ── Ambient light (subtle) ── */
-    const ambientLight = new THREE.AmbientLight(0x1a2a4a, 0.3);
+    const ambientLight = new THREE.AmbientLight(isDark ? 0x1a2a4a : 0x8a9ab0, isDark ? 0.3 : 0.4);
     scene.add(ambientLight);
 
     /* ────────────────────────────────────────────────────

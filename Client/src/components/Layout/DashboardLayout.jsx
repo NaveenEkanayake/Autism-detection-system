@@ -3,19 +3,23 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Brain, Camera, TrendingUp, FileText,
-  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sun, Menu
+  ChevronRight, Activity, Moon, CheckCircle, LogOut, Menu, Sparkles, ChevronDown
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePatients } from "../../hooks/PatientsContext";
 import { useTheme } from "../../hooks/useTheme";
-import GradientButton from "../ui/GradientButton";
+import SkyToggle from "../ui/SkyToggle";
 
 const NAV_ITEMS = [
   { to: "/dashboard", icon: LayoutDashboard, label: "Overview" },
   { to: "/sdq", icon: Brain, label: "SDQ Assessment" },
-  { to: "/vision", icon: Camera, label: "Vision Analysis" },
   { to: "/health", icon: TrendingUp, label: "Health Tracker" },
   { to: "/documents", icon: FileText, label: "Documents" },
+];
+
+const ANALYSIS_DROPDOWN = [
+  { to: "/vision", icon: Camera, label: "Vision Analysis" },
+  { to: "/ai-chat", icon: Sparkles, label: "AI Suggestion" },
 ];
 
 const QUICK_STATS = [
@@ -30,17 +34,16 @@ const SIDEBAR_WIDTH = 280;
 function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
   const { activePatient, getAgeLabel } = usePatients();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
+  const [analysisOpen, setAnalysisOpen] = useState(true);
 
   const handleLogout = async () => {
     await logout();
     navigate("/");
     onClose();
   };
-
-  const ThemeIcon = theme === "dark" ? Sun : Moon;
 
   return (
     <motion.aside
@@ -122,14 +125,74 @@ function Sidebar({ open, onClose }) {
             )}
           </NavLink>
         ))}
+
+        {/* Analysis Dropdown */}
+        <div>
+          <button
+            onClick={() => setAnalysisOpen(!analysisOpen)}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 border border-transparent w-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-blue-500/20 hover:bg-gradient-to-r hover:from-blue-500/15 hover:to-emerald-500/10"
+          >
+            <Camera className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1 text-left">Analysis</span>
+            <motion.div
+              animate={{ rotate: analysisOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="w-3.5 h-3.5" />
+            </motion.div>
+          </button>
+          <AnimatePresence>
+            {analysisOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden"
+              >
+                <div className="ml-3 mt-1 space-y-1 border-l-2 pl-3" style={{ borderColor: "var(--sidebar-border)" }}>
+                  {ANALYSIS_DROPDOWN.map(({ to, icon: Icon, label }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        "flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 border " +
+                        (isActive
+                          ? "border-blue-500/20 text-[var(--text-primary)]"
+                          : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-blue-500/20")
+                      }
+                      style={({ isActive }) => ({
+                        background: isActive ? "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))" : "",
+                      })}
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon className={"w-3.5 h-3.5 flex-shrink-0 " + (isActive ? "text-blue-400" : "")} />
+                          <span className="flex-1">{label}</span>
+                          {isActive && <ChevronRight className="w-3 h-3 text-blue-400" />}
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </nav>
 
       {/* Theme Toggle + Logout */}
-      <div className="px-3 pb-2 pt-3 space-y-1 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
-        <GradientButton onClick={toggleTheme} className="flex items-center gap-3 px-4 py-2.5">
-          {theme === "dark" ? <Sun className="w-4 h-4 label" /> : <Moon className="w-4 h-4 label" />}
-          <span className="label flex-1 text-left">{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
-        </GradientButton>
+      <div className="px-4 pt-4 pb-3 border-t space-y-4" style={{ borderColor: "var(--sidebar-border)" }}>
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+            {theme === "dark" ? "Dark Mode" : "Light Mode"}
+          </span>
+          <SkyToggle
+            checked={theme === "dark"}
+            onChange={(checked) => setTheme(checked ? "dark" : "light")}
+          />
+        </div>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 w-full border border-transparent hover:bg-red-500/10 hover:border-red-500/20"

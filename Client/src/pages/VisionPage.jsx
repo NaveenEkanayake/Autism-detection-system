@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
-import { Camera, CheckCircle, Info, Upload, Sparkles } from "lucide-react";
+import { CheckCircle, Info, Upload, Sparkles } from "lucide-react";
 import { usePatients } from "../hooks/PatientsContext";
+import Stepper from "../components/ui/Stepper";
 
 function VisionPage() {
+  const [currentStep, setCurrentStep] = useState(1);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [visionResult, setVisionResult] = useState(null);
@@ -15,6 +17,7 @@ function VisionPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadedFile(file);
+    setCurrentStep(2);
     setProcessing(true);
 
     gsap.fromTo(uploadRef.current,
@@ -32,6 +35,7 @@ function VisionPage() {
         behavioral_flags: ["Sustained attention detected", "Social gaze present"],
         risk_indicators: [],
       });
+      setCurrentStep(3);
       setProcessing(false);
     }, 2500);
   };
@@ -57,6 +61,8 @@ function VisionPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <Stepper currentStep={currentStep} />
+
       <div ref={uploadRef} className="rounded-2xl p-6 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
         <h3 className="font-semibold mb-1" style={{ color: "var(--text-primary)" }}>YOLOv8 Behavioral Vision Analysis</h3>
         <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>

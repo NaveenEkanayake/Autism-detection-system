@@ -3,21 +3,21 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Brain, Sun, Moon } from "lucide-react";
 import { useTheme } from "../../../hooks/useTheme";
 
-function MenuIcon({ open }) {
+function MenuIcon({ open, isDark }) {
   return (
     <div className="relative w-5 h-5 flex items-center justify-center">
       <motion.span
-        className="absolute h-[2px] w-5 bg-white rounded-full"
+        className={`absolute h-[2px] w-5 rounded-full ${isDark ? "bg-white" : "bg-gray-800"}`}
         animate={open ? { rotate: 45, y: 0 } : { rotate: 0, y: -5 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       />
       <motion.span
-        className="absolute h-[2px] w-5 bg-white rounded-full"
+        className={`absolute h-[2px] w-5 rounded-full ${isDark ? "bg-white" : "bg-gray-800"}`}
         animate={open ? { opacity: 0, x: 10 } : { opacity: 1, x: 0 }}
         transition={{ duration: 0.2 }}
       />
       <motion.span
-        className="absolute h-[2px] w-5 bg-white rounded-full"
+        className={`absolute h-[2px] w-5 rounded-full ${isDark ? "bg-white" : "bg-gray-800"}`}
         animate={open ? { rotate: -45, y: 0 } : { rotate: 0, y: 5 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
       />
@@ -28,6 +28,7 @@ function MenuIcon({ open }) {
 function LandingNav({ activeSection = 0 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const isDark = theme === "dark";
 
   const navLinks = [
     { id: 0, label: "Home", href: "#hero-section" },
@@ -63,7 +64,7 @@ function LandingNav({ activeSection = 0 }) {
             transition={{ duration: 0.8, ease: "expo.out" }}
             href="#hero-section" 
             onClick={(e) => scrollToSection(e, "#hero-section")} 
-            className="flex items-center gap-2 text-white group cursor-pointer"
+            className={`flex items-center gap-2 group cursor-pointer ${isDark ? "text-white" : "text-gray-900"}`}
           >
             <div className="p-1.5 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25 group-hover:scale-110 transition-transform duration-300">
               <Brain className="size-5" strokeWidth={2} />
@@ -74,7 +75,11 @@ function LandingNav({ activeSection = 0 }) {
           </motion.a>
 
           {/* Nav links - Glass Capsule */}
-          <div className="flex items-center gap-1 px-3 py-2 rounded-2xl bg-white/[0.03] backdrop-blur-2xl border border-white/[0.08] shadow-2xl shadow-black/20">
+          <div className={`flex items-center gap-1 px-3 py-2 rounded-2xl backdrop-blur-2xl border shadow-2xl transition-colors duration-300 ${
+            isDark
+              ? "bg-white/[0.03] border-white/[0.08] shadow-black/20"
+              : "bg-black/[0.03] border-black/[0.08] shadow-black/10"
+          }`}>
             {navLinks.map((link, i) => {
               const isActive = activeSection === link.id;
               const isLast = i === navLinks.length - 1;
@@ -85,8 +90,10 @@ function LandingNav({ activeSection = 0 }) {
                     onClick={(e) => scrollToSection(e, link.href)}
                     className={`relative text-[11px] font-bold tracking-widest uppercase transition-all duration-500 px-4 py-2 rounded-xl ${
                       isActive
-                        ? "text-blue-400 bg-blue-500/10 shadow-inner"
-                        : "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.05]"
+                        ? "text-blue-500 bg-blue-500/10 shadow-inner"
+                        : isDark
+                          ? "text-neutral-500 hover:text-neutral-300 hover:bg-white/[0.05]"
+                          : "text-neutral-500 hover:text-gray-700 hover:bg-black/[0.05]"
                     }`}
                   >
                     {link.label}
@@ -98,7 +105,7 @@ function LandingNav({ activeSection = 0 }) {
                       />
                     )}
                   </a>
-                  {!isLast && <span className="w-px h-3 bg-white/5 mx-1" />}
+                  {!isLast && <span className={`w-px h-3 mx-1 ${isDark ? "bg-white/5" : "bg-black/5"}`} />}
                 </React.Fragment>
               );
             })}
@@ -110,7 +117,11 @@ function LandingNav({ activeSection = 0 }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "expo.out" }}
             onClick={toggleTheme}
-            className="relative w-10 h-10 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 shadow-lg shadow-black/20"
+            className={`relative w-10 h-10 rounded-xl backdrop-blur-xl border flex items-center justify-center transition-all duration-300 shadow-lg ${
+              isDark
+                ? "bg-white/[0.03] border-white/[0.08] text-neutral-400 hover:text-white hover:bg-white/10 hover:border-white/20 shadow-black/20"
+                : "bg-black/[0.03] border-black/[0.08] text-neutral-500 hover:text-gray-800 hover:bg-black/10 hover:border-black/20 shadow-black/10"
+            }`}
             aria-label="Toggle theme"
           >
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
@@ -121,7 +132,7 @@ function LandingNav({ activeSection = 0 }) {
       {/* Mobile Nav */}
       <nav className="fixed top-0 left-0 right-0 z-[60] md:hidden p-4">
         <div className="flex items-center justify-between h-14 px-2">
-          <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className="flex items-center gap-2 text-white">
+          <a href="#hero-section" onClick={(e) => scrollToSection(e, "#hero-section")} className={`flex items-center gap-2 ${isDark ? "text-white" : "text-gray-900"}`}>
             <div className="p-1 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/25">
               <Brain className="size-4" strokeWidth={2} />
             </div>
@@ -133,17 +144,25 @@ function LandingNav({ activeSection = 0 }) {
           <div className="flex items-center gap-2">
             <button
               onClick={toggleTheme}
-              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center text-neutral-400 hover:text-white transition-all"
+              className={`relative w-9 h-9 rounded-xl backdrop-blur-xl border flex items-center justify-center transition-all ${
+                isDark
+                  ? "bg-white/[0.03] border-white/[0.08] text-neutral-400 hover:text-white"
+                  : "bg-black/[0.03] border-black/[0.08] text-neutral-500 hover:text-gray-800"
+              }`}
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
             </button>
             <button
-              className="relative w-9 h-9 rounded-xl bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] flex items-center justify-center z-[70]"
+              className={`relative w-9 h-9 rounded-xl backdrop-blur-xl border flex items-center justify-center z-[70] ${
+                isDark
+                  ? "bg-white/[0.03] border-white/[0.08]"
+                  : "bg-black/[0.03] border-black/[0.08]"
+              }`}
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={mobileOpen ? "Close menu" : "Open menu"}
             >
-              <MenuIcon open={mobileOpen} />
+              <MenuIcon open={mobileOpen} isDark={isDark} />
             </button>
           </div>
         </div>
@@ -153,7 +172,9 @@ function LandingNav({ activeSection = 0 }) {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-40 md:hidden flex flex-col items-center justify-center bg-neutral-950/95 backdrop-blur-3xl"
+            className={`fixed inset-0 z-40 md:hidden flex flex-col items-center justify-center backdrop-blur-3xl ${
+              isDark ? "bg-neutral-950/95" : "bg-white/95"
+            }`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -169,8 +190,10 @@ function LandingNav({ activeSection = 0 }) {
                     onClick={(e) => scrollToSection(e, link.href)}
                     className={`text-lg font-bold tracking-[0.2em] uppercase transition-all duration-300 px-8 py-3 rounded-2xl ${
                       isActive
-                        ? "text-blue-400 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
-                        : "text-neutral-500 hover:text-white"
+                        ? "text-blue-500 bg-blue-500/10 border border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]"
+                        : isDark
+                          ? "text-neutral-500 hover:text-white"
+                          : "text-neutral-500 hover:text-gray-900"
                     }`}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

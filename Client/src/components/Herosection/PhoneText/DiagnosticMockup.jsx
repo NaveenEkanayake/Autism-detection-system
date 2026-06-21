@@ -12,6 +12,7 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
   const [authMode, setAuthMode] = useState(null);
   const navigate = useNavigate();
   const { theme } = useTheme();
+  const isDark = theme === "dark";
 
   const handleAuthSuccess = (isSignup = false) => {
     if (isSignup) {
@@ -41,16 +42,16 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
               
               <div className="absolute top-[5px] left-1/2 -translate-x-1/2 w-[100px] h-[28px] rounded-full z-50 flex items-center justify-center px-3" style={{ backgroundColor: "var(--landing-notch)" }}>
                 <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.9)] animate-pulse mr-2" />
-                <span className="text-[7px] text-neutral-400 font-bold uppercase tracking-widest">Vision Cam</span>
+                <span className="text-[7px] font-bold uppercase tracking-widest" style={{ color: "var(--landing-text-secondary)" }}>Vision Cam</span>
               </div>
 
               <div className="relative w-full h-full pt-12 px-5 pb-8 flex flex-col justify-between">
                 <div className="phone-widget flex justify-between items-center">
                   <div className="flex flex-col">
-                    <span className="text-[8px] text-neutral-400 uppercase tracking-widest font-bold mb-0.5">{cardHeading}</span>
-                    <span className="text-base font-bold tracking-tight text-white drop-shadow-md">Development Tracking</span>
+                    <span className="text-[8px] uppercase tracking-widest font-bold mb-0.5" style={{ color: "var(--landing-text-secondary)" }}>{cardHeading}</span>
+                    <span className="text-base font-bold tracking-tight drop-shadow-md" style={{ color: "var(--landing-text)" }}>Development Tracking</span>
                   </div>
-                  <div className="w-8 h-8 rounded-full bg-white/5 text-blue-400 flex items-center justify-center font-bold text-xs border border-white/10 shadow-md">3-5</div>
+                  <div className="w-8 h-8 rounded-full text-blue-400 flex items-center justify-center font-bold text-xs shadow-md" style={{ backgroundColor: "var(--landing-notch)", border: "1px solid var(--landing-card-border)" }}>3-5</div>
                 </div>
 
                 <div className="phone-widget relative w-40 h-40 mx-auto flex items-center justify-center drop-shadow-[0_15px_25px_rgba(0,0,0,0.8)]">
@@ -59,8 +60,8 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
                     <circle className="progress-ring" cx="80" cy="80" r="64" fill="none" stroke="#3B82F6" strokeWidth="8" />
                   </svg>
                   <div className="text-center z-10 flex flex-col items-center">
-                    <span className="counter-val text-4xl font-extrabold tracking-tighter text-white">0</span>
-                    <span className="text-[7px] text-blue-200/50 uppercase tracking-[0.1em] font-bold mt-1 max-w-[80px] leading-tight">{metricLabel}</span>
+                    <span className="counter-val text-4xl font-extrabold tracking-tighter" style={{ color: "var(--landing-text)" }}>0</span>
+                    <span className="text-[7px] uppercase tracking-[0.1em] font-bold mt-1 max-w-[80px] leading-tight" style={{ color: "var(--landing-text-secondary)" }}>{metricLabel}</span>
                   </div>
                 </div>
 
@@ -70,7 +71,7 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
                       <Camera className="size-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-[10px] font-semibold text-white">Image Detection</div>
+                      <div className="text-[10px] font-semibold" style={{ color: "var(--landing-text)" }}>Image Detection</div>
                       <div className="h-1 w-20 bg-blue-500/30 rounded-full mt-1" />
                     </div>
                   </div>
@@ -79,12 +80,12 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
                       <Brain className="size-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="text-[10px] font-semibold text-white">Health Tracker</div>
+                      <div className="text-[10px] font-semibold" style={{ color: "var(--landing-text)" }}>Health Tracker</div>
                       <div className="h-1 w-14 bg-indigo-500/30 rounded-full mt-1" />
                     </div>
                   </div>
                 </div>
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[120px] h-[3px] bg-white/10 rounded-full" />
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[120px] h-[3px] rounded-full" style={{ backgroundColor: "var(--landing-text-secondary)" }} />
               </div>
 
             </div>

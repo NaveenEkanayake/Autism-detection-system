@@ -58,7 +58,7 @@ function Home() {
                backgroundImage: `url('data:image/svg+xml;utf8,<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>')` 
              }} 
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.4)_100%)]" />
+        <div className="absolute inset-0 transition-colors duration-500" style={{ background: theme === "dark" ? "radial-gradient(circle,transparent_40%,rgba(0,0,0,0.4)_100%)" : "radial-gradient(circle,transparent_40%,rgba(0,0,0,0.05)_100%)" }} />
       </div>
 
       {/* ── 3D BACKGROUND LAYER (Depth Anchor) ── */}
@@ -66,7 +66,7 @@ function Home() {
         className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-1000 ease-in-out"
         style={{ opacity: showBg ? 1 : 0 }}
       >
-        <Background activeSection={activeSection} />
+        <Background activeSection={activeSection} theme={theme} />
       </div>
       
       {/* ── LAYERED UI STACK ── */}

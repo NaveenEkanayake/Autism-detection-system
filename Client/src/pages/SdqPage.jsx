@@ -81,6 +81,7 @@ function SdqPage() {
     const direction = sdqPage > prevPage.current ? 1 : -1;
     prevPage.current = sdqPage;
 
+    /*
     const ctx = gsap.context(() => {
       gsap.from(".sdq-question", {
         opacity: 0, x: direction * 40, duration: 0.4,
@@ -88,6 +89,8 @@ function SdqPage() {
       });
     }, questionsRef);
     return () => ctx.revert();
+    */
+    return () => {};
   }, [sdqPage]);
 
   const handlePageChange = (dir) => {

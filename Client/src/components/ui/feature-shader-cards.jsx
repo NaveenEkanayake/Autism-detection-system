@@ -13,32 +13,32 @@ const features = [
   {
     title: "AI-Powered Detection",
     description: "Advanced machine learning algorithms analyze behavioral patterns with 94.8% sensitivity for early autism screening.",
-    icon: <Sparkles className="w-12 h-12 text-white" />,
+    icon: <Sparkles className="w-12 h-12" />,
   },
   {
     title: "SDQ Assessment",
     description: "Clinically validated Strengths and Difficulties Questionnaires with guided prompts for accurate parent-led screening.",
-    icon: <Zap className="w-12 h-12 text-white" />,
+    icon: <Zap className="w-12 h-12" />,
   },
   {
     title: "Health Tracking",
     description: "Continuous monitoring of developmental milestones with real-time analytics and progress visualization.",
-    icon: <Cpu className="w-12 h-12 text-white" />,
+    icon: <Cpu className="w-12 h-12" />,
   },
   {
     title: "Report Generation",
     description: "Automated PDF reports with comprehensive charts and data visualization for clinical referrals.",
-    icon: <Puzzle className="w-12 h-12 text-white" />,
+    icon: <Puzzle className="w-12 h-12" />,
   },
   {
     title: "Mobile Ready",
     description: "Fully responsive design that works seamlessly across desktop, tablet, and mobile devices.",
-    icon: <Smartphone className="w-12 h-12 text-white" />,
+    icon: <Smartphone className="w-12 h-12" />,
   },
   {
     title: "Secure & Private",
     description: "HIPAA-compliant data storage with end-to-end encryption ensuring patient confidentiality.",
-    icon: <Palette className="w-12 h-12 text-white" />,
+    icon: <Palette className="w-12 h-12" />,
   },
 ];
 
@@ -133,7 +133,11 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
 
       <div className="max-w-7xl mx-auto relative z-10">
         <div ref={headerRef} className="text-center mb-16 md:mb-24">
-          <span className="inline-block text-xs uppercase font-bold tracking-widest text-blue-400 bg-blue-500/10 px-4 py-1.5 rounded-full border border-blue-500/20 mb-6">
+          <span className="inline-block text-xs uppercase font-bold tracking-widest px-4 py-1.5 rounded-full border mb-6" style={{ 
+            color: "var(--landing-text)", 
+            backgroundColor: isDark ? "rgba(59, 130, 246, 0.1)" : "rgba(59, 130, 246, 0.05)", 
+            borderColor: isDark ? "rgba(59, 130, 246, 0.2)" : "rgba(59, 130, 246, 0.1)" 
+          }}>
             Platform Features
           </span>
           <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8" style={{ color: "var(--landing-text)" }}>
@@ -173,12 +177,17 @@ function FeaturesCards({ headerRef, featuresRef, sectionRef, setActiveSection, s
                   backgroundColor: isDark ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)", 
                   borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" 
                 }}>
-                  <div className="mb-6 p-3 rounded-2xl bg-white/10 w-fit shadow-inner">{feature.icon}</div>
+                  <div className="mb-6 p-3 rounded-2xl w-fit shadow-inner" style={{ 
+                    backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" 
+                  }}>{feature.icon}</div>
                   <h3 className="text-2xl md:text-3xl font-bold mb-4" style={{ color: "var(--landing-text)" }}>{feature.title}</h3>
                   <p className="text-base md:text-lg leading-relaxed flex-grow opacity-90" style={{ color: "var(--landing-text-secondary)" }}>
                     {feature.description}
                   </p>
-                  <div className="mt-6 flex items-center text-sm font-bold text-blue-400 group-hover:text-blue-300 transition-all duration-300 gap-2 translate-x-0 group-hover:translate-x-2">
+                  <div className="mt-6 flex items-center text-sm font-bold transition-all duration-300 gap-2 translate-x-0 group-hover:translate-x-2" style={{ 
+                    color: isDark ? "#60a5fa" : "#2563eb",
+                    transition: "color 0.3s ease"
+                  }}>
                     <span>Learn more</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

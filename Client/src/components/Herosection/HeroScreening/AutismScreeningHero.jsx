@@ -20,13 +20,20 @@ const INJECTED_STYLES = `
   }
   .cinematic-vignette {
       position: absolute; inset: 0; pointer-events: none; z-index: 90;
-      background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%);
   }
-  .bg-grid-theme {
+  .bg-grid-theme-dark {
       background-size: 60px 60px;
       background-image: 
           linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
           linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+      mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+  }
+  .bg-grid-theme-light {
+      background-size: 60px 60px;
+      background-image: 
+          linear-gradient(to right, rgba(0,0,0,0.04) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(0,0,0,0.04) 1px, transparent 1px);
       mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
       -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
   }
@@ -70,6 +77,8 @@ function AutismScreeningHero({
   setActiveSection,
   setShowBg
 }) {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const containerRef = useRef(null);
   const mainCardRef = useRef(null);
   const mockupRef = useRef(null);
@@ -216,19 +225,19 @@ function AutismScreeningHero({
     <div
       id="hero-section"
       ref={containerRef}
-      className="relative w-full overflow-hidden bg-transparent text-white font-sans antialiased"
+      className={`relative w-full overflow-hidden bg-transparent font-sans antialiased ${isDark ? "text-white" : "text-gray-900"}`}
       style={{ perspective: "2000px" }}
     >
       <style dangerouslySetInnerHTML={{ __html: INJECTED_STYLES }} />
       <div className="film-grain" aria-hidden="true" />
-      <div className="cinematic-vignette" aria-hidden="true" />
+      <div className="cinematic-vignette" aria-hidden="true" style={{ background: isDark ? "radial-gradient(circle, transparent 40%, rgba(0,0,0,0.4) 100%)" : "radial-gradient(circle, transparent 40%, rgba(0,0,0,0.05) 100%)" }} />
 
       <div className="relative w-full h-screen overflow-hidden" style={{ perspective: "2000px" }}>
         <div className="hero-text-wrapper absolute z-10 inset-0 flex flex-col items-center justify-center text-center w-screen px-4 will-change-transform">
           <div className="text-track gsap-reveal">
             <AnimatedText
               text="Advanced Pediatric Tracking"
-              textClassName="text-[1.6rem] sm:text-[2.2rem] md:text-[3.2rem] lg:text-[4.8rem] font-bold tracking-tight text-white drop-shadow-2xl py-2"
+              textClassName={`text-[1.6rem] sm:text-[2.2rem] md:text-[3.2rem] lg:text-[4.8rem] font-bold tracking-tight drop-shadow-2xl py-2 ${isDark ? "text-white" : "text-gray-900"}`}
               gradientColors="linear-gradient(90deg, #6b7280, #ffffff, #6b7280)"
             />
           </div>

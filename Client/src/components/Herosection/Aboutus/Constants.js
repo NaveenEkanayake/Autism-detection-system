@@ -6,8 +6,8 @@ export const ABOUT_SLIDES = [
     label: "Early Detection",
     icon: Baby,
     tag: "01",
-    image: "https://images.unsplash.com/photo-1587654780291-39c9404d7dd0?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3",
-    smallImage: "https://images.unsplash.com/photo-1503454537688-e6694d30b04b?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3",
+    image: "/images/about/slide1-main.jpg",
+    smallImage: "/images/about/slide1-small.jpg",
     title: "Catching Signs Before Age 5",
     description: "Aura Track is purpose-built for the critical 3–5 year developmental window.",
     features: [
@@ -22,8 +22,8 @@ export const ABOUT_SLIDES = [
     label: "Parent-Led Insights",
     icon: HeartHandshake,
     tag: "02",
-    image: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3",
-    smallImage: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3",
+    image: "/images/about/slide2-main.jpg",
+    smallImage: "/images/about/slide2-small.jpg",
     title: "Empowering Families at Home",
     description: "Parents and caregivers are the first to notice behavioral patterns.",
     features: [
@@ -38,8 +38,8 @@ export const ABOUT_SLIDES = [
     label: "Clinical Dashboard",
     icon: Activity,
     tag: "03",
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1400&auto=format&fit=crop&ixlib=rb-4.0.3",
-    smallImage: "https://images.unsplash.com/photo-1460925895917-adf4e565db18?q=80&w=400&auto=format&fit=crop&ixlib=rb-4.0.3",
+    image: "/images/about/slide3-main.jpg",
+    smallImage: "/images/about/slide3-small.jpg",
     title: "Bridging Parents & Clinicians",
     description: "Pediatric nurses and specialists access a unified dashboard.",
     features: [
@@ -47,6 +47,22 @@ export const ABOUT_SLIDES = [
       "Risk stratification algorithms",
       "One-click clinical referral system",
       "Secure provider-parent messaging"
+    ]
+  },
+  {
+    id: "community-impact",
+    label: "Community Impact",
+    icon: HeartHandshake,
+    tag: "04",
+    image: "/images/about/slide4-main.jpg",
+    smallImage: "/images/about/slide4-small.jpg",
+    title: "Transforming Lives Together",
+    description: "Building a supportive community for early autism detection and intervention.",
+    features: [
+      "Family support networks and resources",
+      "Community education and awareness",
+      "Early intervention success stories",
+      "Collaborative care partnerships"
     ]
   },
 ];

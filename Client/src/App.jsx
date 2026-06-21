@@ -5,6 +5,8 @@ import SdqPage from "./pages/SdqPage";
 import VisionPage from "./pages/VisionPage";
 import HealthTrackerPage from "./pages/HealthTrackerPage";
 import DocumentLibraryPage from "./pages/DocumentLibraryPage";
+import VisionAnalysisPage from "./pages/VisionAnalysisPage";
+import AIChatPage from "./pages/AIChatPage";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 import ProtectedRoute from "./components/Layout/ProtectedRoute";
 import { PatientsProvider } from "./hooks/PatientsContext";
@@ -23,9 +25,11 @@ function App() {
             <Route element={<ProtectedRoute />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/sdq" element={<SdqPage />} />
-                <Route path="/vision" element={<VisionPage />} />
-                <Route path="/health" element={<HealthTrackerPage />} />
+              <Route path="/sdq" element={<SdqPage />} />
+              <Route path="/vision" element={<VisionPage />} />
+              <Route path="/vision-analysis" element={<VisionAnalysisPage />} />
+              <Route path="/ai-chat" element={<AIChatPage />} />
+              <Route path="/health" element={<HealthTrackerPage />} />
                 <Route path="/documents" element={<DocumentLibraryPage />} />
               </Route>
             </Route>

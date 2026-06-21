@@ -48,19 +48,19 @@ function SDQAssessment() {
             <CheckCircle2 className="w-4 h-4 text-purple-400" />
             <span className="text-xs font-semibold text-purple-400 uppercase tracking-wider">SDQ Assessment</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold landing-text-primary mb-4">
             Strengths & Difficulties Questionnaire
           </h2>
-          <p className="text-neutral-400">Evidence-based 25-question assessment for behavioral screening</p>
+          <p className="landing-text-secondary">Evidence-based 25-question assessment for behavioral screening</p>
         </motion.div>
 
         {/* Progress Bar */}
         <motion.div className="mb-8" variants={itemVariants}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-white">Assessment Progress</span>
-            <span className="text-sm text-neutral-400">{answeredQuestions}/{totalQuestions}</span>
+            <span className="text-sm font-semibold landing-text-primary">Assessment Progress</span>
+            <span className="text-sm landing-text-secondary">{answeredQuestions}/{totalQuestions}</span>
           </div>
-          <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/10">
+          <div className="w-full h-3 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden landing-card-border">
             <motion.div
               className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
               initial={{ width: 0 }}
@@ -75,30 +75,30 @@ function SDQAssessment() {
           {SDQ_QUESTIONS.map((category) => (
             <motion.div
               key={category.id}
-              className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.02] hover:bg-white/[0.04] transition-all"
+              className="landing-card-border rounded-lg overflow-hidden landing-card-glass hover:opacity-90 transition-all"
               variants={itemVariants}
             >
               <button
                 onClick={() => setExpandedCategory(expandedCategory === category.id ? null : category.id)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-white/5 transition-colors"
+                className="w-full px-6 py-4 flex items-center justify-between hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-2 h-2 rounded-full bg-purple-400" />
-                  <h3 className="text-white font-semibold">{category.category}</h3>
-                  <span className="text-xs text-neutral-500">({category.questions.length} questions)</span>
+                  <h3 className="landing-text-primary font-semibold">{category.category}</h3>
+                  <span className="text-xs landing-text-secondary">({category.questions.length} questions)</span>
                 </div>
                 <motion.div
                   animate={{ rotate: expandedCategory === category.id ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
                 >
-                  <ChevronDown className="w-5 h-5 text-neutral-400" />
+                  <ChevronDown className="w-5 h-5 landing-text-secondary" />
                 </motion.div>
               </button>
 
               <AnimatePresence>
                 {expandedCategory === category.id && (
                   <motion.div
-                    className="border-t border-white/10 bg-black/20 px-6 py-4 space-y-6"
+                    className="border-t landing-card-border bg-black/5 dark:bg-black/20 px-6 py-4 space-y-6"
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
@@ -106,7 +106,7 @@ function SDQAssessment() {
                   >
                     {category.questions.map((question) => (
                       <div key={question.id}>
-                        <p className="text-sm text-neutral-300 mb-3">{question.text}</p>
+                        <p className="text-sm landing-text-primary mb-3">{question.text}</p>
                         <div className="flex gap-1.5 sm:gap-2">
                           {["Not True", "Somewhat True", "Certainly True"].map((label, idx) => (
                             <button
@@ -115,7 +115,7 @@ function SDQAssessment() {
                               className={`flex-1 px-1.5 sm:px-3 py-2 rounded-lg text-[10px] sm:text-xs font-semibold leading-tight transition-all ${
                                 responses[question.id] === idx
                                   ? "bg-purple-500 text-white shadow-lg shadow-purple-500/30"
-                                  : "bg-white/5 text-neutral-400 hover:bg-white/10 border border-white/10"
+                                  : "bg-black/5 dark:bg-white/5 landing-text-secondary hover:opacity-80 landing-card-border"
                               }`}
                             >
                               {label}

@@ -35,10 +35,10 @@ function AIDetection() {
             <Brain className="w-4 h-4 text-blue-400" />
             <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">AI Detection Engine</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold landing-text-primary mb-4">
             Multi-Modal AI Detection
           </h2>
-          <p className="text-neutral-400 max-w-2xl mx-auto">
+          <p className="landing-text-secondary max-w-2xl mx-auto">
             Advanced machine learning models trained on thousands of pediatric assessments
           </p>
         </motion.div>
@@ -48,7 +48,7 @@ function AIDetection() {
           {AI_MODELS.map((model) => (
             <motion.div
               key={model.id}
-              className="relative p-6 rounded-xl border border-white/10 bg-white/[0.02] backdrop-blur-xl hover:bg-white/[0.05] transition-all duration-300 cursor-pointer"
+              className="relative p-6 rounded-xl landing-card-border landing-card-glass hover:opacity-90 transition-all duration-300 cursor-pointer"
               onMouseEnter={() => setHoveredModel(model.id)}
               onMouseLeave={() => setHoveredModel(null)}
               variants={itemVariants}
@@ -58,32 +58,32 @@ function AIDetection() {
 
               {/* Accuracy Badge */}
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold">{model.name}</h3>
+                <h3 className="landing-text-primary font-semibold">{model.name}</h3>
                 <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-500/20 border border-blue-500/30">
                   <TrendingUp className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-bold text-blue-400">{model.accuracy}%</span>
                 </div>
               </div>
 
-              <p className="text-sm text-neutral-400 mb-4">{model.description}</p>
+              <p className="text-sm landing-text-secondary mb-4">{model.description}</p>
 
               {/* Metrics */}
               <div className="space-y-2">
                 {model.metrics.map((metric, idx) => (
                   <div key={idx} className="flex items-center gap-2">
                     <Activity className="w-3 h-3 text-green-400" />
-                    <span className="text-xs text-neutral-300">{metric}</span>
+                    <span className="text-xs landing-text-secondary">{metric}</span>
                   </div>
                 ))}
               </div>
 
               {/* Progress Bar */}
-              <div className="mt-4 pt-4 border-t border-white/10">
+              <div className="mt-4 pt-4 landing-card-border border-t">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-neutral-400">Accuracy</span>
-                  <span className="text-xs font-mono text-white">{model.accuracy}%</span>
+                  <span className="text-xs landing-text-secondary">Accuracy</span>
+                  <span className="text-xs font-mono landing-text-primary">{model.accuracy}%</span>
                 </div>
-                <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                   <motion.div
                     className="h-full bg-gradient-to-r from-blue-500 to-cyan-500"
                     initial={{ width: 0 }}
@@ -98,8 +98,8 @@ function AIDetection() {
         </div>
 
         {/* Detection Process Flow */}
-        <motion.div className="p-8 rounded-xl border border-white/10 bg-gradient-to-br from-blue-500/5 to-cyan-500/5" variants={itemVariants}>
-          <h3 className="text-white font-semibold mb-6">Detection Process</h3>
+        <motion.div className="p-8 rounded-xl landing-card-border landing-card-glass" variants={itemVariants}>
+          <h3 className="landing-text-primary font-semibold mb-6">Detection Process</h3>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
               { step: 1, title: "Capture", desc: "Video & image collection" },
@@ -112,9 +112,9 @@ function AIDetection() {
                   <div className="w-8 h-8 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">
                     {item.step}
                   </div>
-                  <span className="text-white font-semibold">{item.title}</span>
+                  <span className="landing-text-primary font-semibold">{item.title}</span>
                 </div>
-                <p className="text-xs text-neutral-400 ml-11">{item.desc}</p>
+                <p className="text-xs landing-text-secondary ml-11">{item.desc}</p>
               </div>
             ))}
           </div>

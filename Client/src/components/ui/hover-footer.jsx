@@ -116,6 +116,15 @@ function HoverFooter() {
         { label: "Documentation", href: "#" },
       ],
     },
+    {
+      title: "Our Project",
+      links: [
+        { label: "AI Detection Engine", href: "#" },
+        { label: "SDQ Assessment Tool", href: "#" },
+        { label: "Health Tracker", href: "#" },
+        { label: "Clinical Dashboard", href: "#" },
+      ],
+    },
   ];
 
   const contactInfo = [
@@ -132,13 +141,13 @@ function HoverFooter() {
   ];
 
   return (
-    <footer id="footer-section" className="relative rounded-[48px] overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8 border border-white/5 shadow-2xl" style={{ backgroundColor: isDark ? "rgba(15,15,17,0.4)" : "rgba(15,15,17,0.05)" }}>
+    <footer id="footer-section" className="relative rounded-[48px] overflow-hidden mx-4 md:mx-8 mb-4 md:mb-8 shadow-2xl" style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)"}`, backgroundColor: isDark ? "rgba(15,15,17,0.4)" : "rgba(15,15,17,0.03)" }}>
       <div className="max-w-7xl mx-auto p-8 md:p-16 z-40 relative">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 pb-12">
           <div className="flex flex-col space-y-6">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/20">
-                <Brain className="size-6 text-white" />
+                <Brain className="size-6" style={{ color: "var(--landing-text)" }} />
               </div>
               <span className="text-2xl font-bold tracking-tight" style={{ color: "var(--landing-text)" }}>Aura<span className="text-blue-400">Track</span></span>
             </div>
@@ -167,7 +176,7 @@ function HoverFooter() {
             <ul className="space-y-4">
               {contactInfo.map((item, i) => (
                 <li key={i} className="flex items-center gap-3 group cursor-pointer">
-                  <div className="p-2 rounded-lg bg-white/5 group-hover:bg-blue-500/10 transition-colors">
+                  <div className="p-2 rounded-lg transition-colors" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}>
                     {item.icon}
                   </div>
                   {item.href ? (
@@ -188,7 +197,7 @@ function HoverFooter() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex gap-6">
             {socialLinks.map(({ icon, label, href }) => (
-              <a key={label} href={href} aria-label={label} className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300" style={{ color: "var(--text-muted)" }}>
+              <a key={label} href={href} aria-label={label} className="p-2 rounded-lg hover:bg-blue-500/20 hover:text-blue-400 transition-all duration-300" style={{ color: "var(--text-muted)", backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}>
                 {icon}
               </a>
             ))}

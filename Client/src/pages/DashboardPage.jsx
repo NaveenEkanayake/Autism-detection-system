@@ -62,6 +62,8 @@ function DashboardPage() {
       });
 
       const quickCards = quickRef.current?.children || [];
+      // Disabled GSAP animation to debug visibility issues
+      /*
       if (quickCards.length > 0) {
         gsap.from(quickCards, {
           opacity: 0, y: 40, scale: 0.95,
@@ -69,6 +71,7 @@ function DashboardPage() {
           delay: 0.5,
         });
       }
+      */
     }, containerRef);
 
     return () => ctx.revert();
@@ -106,9 +109,9 @@ function DashboardPage() {
           </h2>
           <div className="flex-1 h-px" style={{ background: "var(--card-border)" }} />
         </div>
-        <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+        <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 pb-8">
           {STATS.map((stat) => (
-            <div key={stat.label} className="hover:-translate-y-0.5 transition-transform duration-300">
+            <div key={stat.label} className="hover:-translate-y-1 transition-transform duration-300">
               <StatCard {...stat} loading={false} />
             </div>
           ))}

@@ -17,16 +17,16 @@
 }
 
 :root {
-  --page-bg: #f8fafc;
-  --page-bg-secondary: #f1f5f9;
+  --page-bg: #f0f4f8;
+  --page-bg-secondary: #e9eef3;
   --sidebar-bg: #ffffff;
-  --sidebar-border: rgba(0, 0, 0, 0.06);
-  --card-bg: rgba(0, 0, 0, 0.03);
-  --card-border: rgba(0, 0, 0, 0.08);
+  --sidebar-border: rgba(0, 0, 0, 0.08);
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.1);
   --text-primary: #0f172a;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
   --text-muted: #94a3b8;
-  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-bg: rgba(255, 255, 255, 0.85);
   --glass-border: rgba(0, 0, 0, 0.08);
   --hover-bg: rgba(0, 0, 0, 0.04);
   --badge-bg: rgba(59, 147, 245, 0.1);
@@ -81,6 +81,13 @@ html {
   scroll-behavior: smooth;
   scroll-padding-top: 80px;
 }
+
+.landing-text-primary { color: var(--landing-text); }
+.landing-text-secondary { color: var(--landing-text-secondary); }
+.landing-card-bg { background: var(--landing-card); }
+.landing-card-border { border-color: var(--landing-card-border); }
+.landing-card-glass { background: var(--landing-card); border: 1px solid var(--landing-card-border); backdrop-filter: blur(10px); }
+.landing-badge { background: var(--landing-badge-bg); border: 1px solid var(--landing-badge-border); backdrop-filter: blur(20px); }
 
 html,
 body {

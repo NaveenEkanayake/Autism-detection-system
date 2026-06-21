@@ -68,7 +68,7 @@ function AboutUs({ embedded = false, onTimelineReady }) {
                   <h3 className="text-xl md:text-3xl lg:text-4xl font-bold tracking-tight mb-2 md:mb-3 leading-[1.15]" style={{ color: "var(--landing-text)" }}>{slide.title}</h3>
                   <p className="text-xs md:text-base font-light leading-relaxed" style={{ color: "var(--landing-text-secondary)" }}>{slide.description}</p>
                 </div>
-                <div className="w-full h-24 md:h-40 rounded-lg md:rounded-xl overflow-hidden border border-white/10 shadow-lg">
+                <div className="w-full h-24 md:h-40 rounded-lg md:rounded-xl overflow-hidden shadow-lg" style={{ border: `1px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}` }}>
                   <img src={slide.smallImage} alt={slide.label} className="w-full h-full object-cover" loading="lazy" />
                 </div>
                 <div className="space-y-2 md:space-y-3 pt-1 md:pt-2">
@@ -104,16 +104,16 @@ function AboutUs({ embedded = false, onTimelineReady }) {
                   </div>
                   <p className={`text-[11px] leading-relaxed transition-all duration-700 ${isActive ? "max-h-20 opacity-100" : "max-h-8 opacity-60 line-clamp-2"}`} style={{ color: isActive ? "var(--landing-text-secondary)" : isDark ? "#404040" : "#9ca3af" }}>{slide.title}</p>
                 </div>
-                <div className={`shrink-0 w-1 rounded-full transition-all duration-700 ${isActive ? "h-10 bg-blue-500" : "h-3 bg-white/5"}`} />
+                <div className={`shrink-0 w-1 rounded-full transition-all duration-700 ${isActive ? "h-10 bg-blue-500" : "h-3"}`} style={isActive ? undefined : { backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)" }} />
               </div>
             );
           })}
         </div>
         <div className="mt-6 flex items-center gap-4">
-          <div className="flex-1 h-[3px] bg-white/5 rounded-full overflow-hidden">
+          <div className="flex-1 h-[3px] rounded-full overflow-hidden" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.06)" }}>
             <div ref={progressFillRef} className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-[width] duration-300 ease-out" style={{ width: `${((activeIndex + 1) / slideCount) * 100}%` }} />
           </div>
-          <span className="text-neutral-600 text-[10px] font-mono tabular-nums">{String(activeIndex + 1).padStart(2, "0")}/{slideCount}</span>
+          <span className="text-[10px] font-mono tabular-nums" style={{ color: isDark ? "#525252" : "#9ca3af" }}>{String(activeIndex + 1).padStart(2, "0")}/{slideCount}</span>
         </div>
         <div className="mt-6 flex items-center gap-2" style={{ color: isDark ? "#525252" : "#9ca3af" }}>
           <div className="w-5 h-8 rounded-full border flex items-start justify-center p-1.5" style={{ borderColor: isDark ? "#404040" : "#d1d5db" }}>
@@ -126,14 +126,14 @@ function AboutUs({ embedded = false, onTimelineReady }) {
       {/* Mobile Nav */}
       <div className="absolute bottom-0 left-0 right-0 z-40 lg:hidden to-transparent px-4 pb-6 pt-16" style={{ background: `linear-gradient(to top, ${isDark ? "rgba(0,0,0,0.95)" : "rgba(255,255,255,0.95)"} 0%, ${isDark ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,0.7)"} 50%, transparent 100%)` }}>
         <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-[2px] bg-white/10 rounded-full overflow-hidden">
+          <div className="flex-1 h-[2px] rounded-full overflow-hidden" style={{ backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)" }}>
             <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 rounded-full transition-[width] duration-300" style={{ width: `${((activeIndex + 1) / slideCount) * 100}%` }} />
           </div>
-          <span className="text-neutral-500 text-[10px] font-mono tabular-nums">{String(activeIndex + 1).padStart(2, "0")}/{slideCount}</span>
+            <span className="text-[10px] font-mono tabular-nums" style={{ color: isDark ? "#737373" : "#9ca3af" }}>{String(activeIndex + 1).padStart(2, "0")}/{slideCount}</span>
         </div>
         <div className="flex items-center justify-center gap-2">
           {ABOUT_SLIDES.map((slide, i) => (
-            <div key={slide.id} className={`h-1.5 rounded-full transition-all duration-500 ${i === activeIndex ? "w-8 bg-blue-500" : "w-1.5 bg-white/20"}`} />
+            <div key={slide.id} className={`h-1.5 rounded-full transition-all duration-500 ${i === activeIndex ? "w-8 bg-blue-500" : "w-1.5"}`} style={i === activeIndex ? undefined : { backgroundColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)" }} />
           ))}
         </div>
       </div>
