@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.js";
+import forgotPasswordRoutes from "./routes/forgotPassword.js";
 import patientRoutes from "./routes/patients.js";
 import sdqRoutes from "./routes/sdq.js";
 import visionRoutes from "./routes/vision.js";
@@ -12,12 +13,15 @@ import documentRoutes from "./routes/documents.js";
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173" }));
+app.use(cors({
+  origin: ["http://localhost:5173", "http://localhost:5174"],
+}));
 app.use(express.json());
 
 app.get("/health", (_req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/forgot", forgotPasswordRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/sdq", sdqRoutes);
 app.use("/api/vision", visionRoutes);

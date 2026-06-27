@@ -1,12 +1,10 @@
 import { useState, useRef } from "react";
 import PageWrapper from "../components/Layout/PageWrapper";
-import { CheckCircle, Loader2, Download } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import Stepper from "../components/ui/Stepper";
-import { jsPDF } from "jspdf";
 
 export default function VisionAnalysisPage() {
   const [currentStep, setCurrentStep] = useState(1);
-  const [generatingPdf, setGeneratingPdf] = useState(false);
   const resultRef = useRef(null);
 
   const analysisResults = {
@@ -23,63 +21,6 @@ export default function VisionAnalysisPage() {
   const handleSimulateUpload = () => {
     setCurrentStep(2);
     setTimeout(() => setCurrentStep(3), 2000);
-  };
-
-  const generatePdf = () => {
-    setGeneratingPdf(true);
-    setTimeout(() => {
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-
-      doc.setFontSize(20);
-      doc.setTextColor(59, 147, 245);
-      doc.text("Vision Analysis Report", pageWidth / 2, 30, { align: "center" });
-
-      doc.setFontSize(10);
-      doc.setTextColor(100, 116, 139);
-      doc.text(`Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`, pageWidth / 2, 40, { align: "center" });
-
-      doc.setDrawColor(59, 147, 245);
-      doc.setLineWidth(0.5);
-      doc.line(20, 45, pageWidth - 20, 45);
-
-      doc.setFontSize(13);
-      doc.setTextColor(15, 23, 42);
-      doc.text("Detection Results", 20, 60);
-
-      doc.setFontSize(11);
-      doc.setTextColor(71, 85, 105);
-      let y = 72;
-      analysisResults.detections.forEach((d) => {
-        doc.text(`${d.label}: ${(d.confidence * 100).toFixed(0)}%`, 25, y);
-        y += 10;
-      });
-
-      y += 10;
-      doc.setFontSize(13);
-      doc.setTextColor(15, 23, 42);
-      doc.text("Behavioral Flags", 20, y);
-      y += 10;
-      doc.setFontSize(11);
-      doc.setTextColor(71, 85, 105);
-      analysisResults.behavioral_flags.forEach((f) => {
-        doc.text(`- ${f}`, 25, y);
-        y += 10;
-      });
-
-      y += 10;
-      doc.setFontSize(13);
-      doc.setTextColor(15, 23, 42);
-      doc.text("Summary", 20, y);
-      y += 10;
-      doc.setFontSize(11);
-      doc.setTextColor(71, 85, 105);
-      const lines = doc.splitTextToSize(analysisResults.summary, pageWidth - 40);
-      doc.text(lines, 20, y);
-
-      doc.save("vision-analysis-report.pdf");
-      setGeneratingPdf(false);
-    }, 500);
   };
 
   return (
@@ -124,19 +65,6 @@ export default function VisionAnalysisPage() {
                   <p className="text-xs" style={{ color: "var(--text-secondary)" }}>AI-powered behavioral analysis results</p>
                 </div>
               </div>
-              <button
-                onClick={generatePdf}
-                disabled={generatingPdf}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 border hover:bg-blue-500/10 hover:border-blue-500/30"
-                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--text-primary)" }}
-              >
-                {generatingPdf ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4 text-blue-400" />
-                )}
-                {generatingPdf ? "Generating..." : "Download PDF"}
-              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

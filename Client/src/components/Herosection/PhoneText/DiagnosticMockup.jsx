@@ -6,6 +6,7 @@ import FlowButton from "../../ui/flow-button";
 import AuthModal from "../../Auth/AuthModal";
 import SignupForm from "../../Auth/SignupForm";
 import LoginForm from "../../Auth/LoginForm";
+import ForgotPasswordForm from "../../Auth/ForgotPasswordForm";
 import { useTheme } from "../../../hooks/useTheme";
 
 function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription }) {
@@ -134,7 +135,11 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
       </AuthModal>
 
       <AuthModal open={authMode === "login"} onClose={() => setAuthMode(null)} title="Welcome Back" description="Sign in to continue monitoring your child's progress and assessments.">
-        <LoginForm onSwitchToSignup={() => setAuthMode("signup")} onSuccess={handleAuthSuccess} />
+        <LoginForm onSwitchToSignup={() => setAuthMode("signup")} onSuccess={handleAuthSuccess} onSwitchToForgot={() => setAuthMode("forgot")} />
+      </AuthModal>
+
+      <AuthModal open={authMode === "forgot"} onClose={() => setAuthMode(null)} title="Reset Password" description="Verify your identity to reset your password.">
+        <ForgotPasswordForm onBackToLogin={() => setAuthMode("login")} />
       </AuthModal>
 
     </div>

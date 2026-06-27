@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Phone, ArrowLeft, Shield } from "lucide-react";
 import GradientButton from "../ui/GradientButton";
 import { useAuth } from "../../hooks/useAuth";
 import { showToast } from "../ui/toast";
 
-function LoginForm({ onSwitchToSignup, onSuccess }) {
+function LoginForm({ onSwitchToSignup, onSuccess, onSwitchToForgot }) {
   const [showPassword, setShowPassword] = useState(false);
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -90,6 +91,13 @@ function LoginForm({ onSwitchToSignup, onSuccess }) {
           <input type="checkbox" className="rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500/30" />
           Remember me
         </label>
+        <button
+          type="button"
+          onClick={() => onSwitchToForgot?.()}
+          className="text-sm text-blue-400 hover:text-blue-300 font-medium transition-colors"
+        >
+          Forgot Password?
+        </button>
       </div>
 
       <GradientButton type="submit" loading={submitting}>
