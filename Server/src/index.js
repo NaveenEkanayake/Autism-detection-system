@@ -11,7 +11,7 @@ import healthRoutes from "./routes/health.js";
 import documentRoutes from "./routes/documents.js";
 
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 4001;
 
 app.use(cors({
   origin: ["http://localhost:5173", "http://localhost:5174"],

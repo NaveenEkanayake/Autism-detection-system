@@ -9,11 +9,6 @@ function useBodyLock(open) {
       modalCount++;
       if (modalCount === 1) {
         document.body.style.overflow = "hidden";
-        document.body.style.position = "fixed";
-        document.body.style.top = "0";
-        document.body.style.left = "0";
-        document.body.style.right = "0";
-        document.body.style.width = "100%";
       }
     }
     return () => {
@@ -21,11 +16,6 @@ function useBodyLock(open) {
       if (modalCount <= 0) {
         modalCount = 0;
         document.body.style.overflow = "";
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.left = "";
-        document.body.style.right = "";
-        document.body.style.width = "";
       }
     };
   }, [open]);
@@ -76,24 +66,26 @@ function AuthModal({ open, onClose, title, description, children }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="relative z-10 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto rounded-3xl border-4 border-white/30 bg-neutral-900/95 backdrop-blur-xl shadow-2xl"
+            className="relative z-10 w-full max-w-lg mx-4 my-4 max-h-[85vh] overflow-y-auto rounded-3xl border-4 border-white/30 bg-neutral-900/95 backdrop-blur-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 flex items-center justify-between p-6 pb-4 border-b-4 border-white/20 bg-neutral-900/95 backdrop-blur-xl z-20">
-              <div>
-                <h2 className="text-xl font-bold text-white drop-shadow-md">{title}</h2>
-                {description && <p className="text-sm text-neutral-300 mt-1 font-medium">{description}</p>}
+            <div className="flex flex-col">
+              <div className="sticky top-0 flex items-center justify-between p-6 pb-4 border-b-4 border-white/20 bg-neutral-900/95 backdrop-blur-xl z-20 rounded-t-3xl">
+                <div>
+                  <h2 className="text-xl font-bold text-white drop-shadow-md">{title}</h2>
+                  {description && <p className="text-sm text-neutral-300 mt-1 font-medium">{description}</p>}
+                </div>
+                <button
+                  onClick={onClose}
+                  className="relative w-10 h-10 rounded-xl bg-white/[0.05] border-2 border-white/[0.15] flex items-center justify-center hover:bg-white/10 hover:border-white/25 transition-all flex-shrink-0"
+                  aria-label="Close"
+                >
+                  <CloseIcon />
+                </button>
               </div>
-              <button
-                onClick={onClose}
-                className="relative w-10 h-10 rounded-xl bg-white/[0.05] border-2 border-white/[0.15] flex items-center justify-center hover:bg-white/10 hover:border-white/25 transition-all"
-                aria-label="Close"
-              >
-                <CloseIcon />
-              </button>
-            </div>
 
-            <div className="p-7 pt-5 pb-9">{children}</div>
+              <div className="p-7 pt-5 pb-9">{children}</div>
+            </div>
           </motion.div>
         </div>
       )}

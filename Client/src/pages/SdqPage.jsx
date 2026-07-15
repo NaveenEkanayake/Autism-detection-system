@@ -3,6 +3,8 @@ import { gsap } from "gsap";
 import { ChevronLeft, ChevronRight, Send, RefreshCw, Trophy, AlertTriangle } from "lucide-react";
 import { usePatients } from "../hooks/PatientsContext";
 import PageWrapper from "../components/Layout/PageWrapper";
+import { api } from "../lib/api";
+import { showToast } from "../components/ui/toast";
 
 const SDQ_QUESTIONS = [
   { id: 1, text: "Considerate of other people's feelings", scale: "prosocial" },
@@ -67,7 +69,7 @@ function SdqPage() {
   const { activePatient } = usePatients();
   const questionsRef = useRef(null);
   const resultsRef = useRef(null);
-  const prevPage = useRef(sdqPage);
+  const prevPage = useRef(0);
 
   const totalPages = Math.ceil(SDQ_QUESTIONS.length / QUESTIONS_PER_PAGE);
   const pageQuestions = SDQ_QUESTIONS.slice(sdqPage * QUESTIONS_PER_PAGE, (sdqPage + 1) * QUESTIONS_PER_PAGE);
@@ -80,17 +82,13 @@ function SdqPage() {
     if (!questionsRef.current) return;
     const direction = sdqPage > prevPage.current ? 1 : -1;
     prevPage.current = sdqPage;
-
-    /*
     const ctx = gsap.context(() => {
       gsap.from(".sdq-question", {
-        opacity: 0, x: direction * 40, duration: 0.4,
-        stagger: 0.06, ease: "power2.out",
+        opacity: 0, x: direction * 40,
+        duration: 0.4, stagger: 0.06, ease: "power2.out",
       });
     }, questionsRef);
     return () => ctx.revert();
-    */
-    return () => {};
   }, [sdqPage]);
 
   const handlePageChange = (dir) => {
@@ -98,14 +96,44 @@ function SdqPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleSubmitSDQ = () => {
+  const handleSubmitSDQ = async () => {
     if (totalAnswered < 25) return;
+    if (!activePatient?.id) {
+      showToast({
+        title: "No Child Selected",
+        description: "Please select or add a child profile to submit an assessment.",
+        type: "error",
+      });
+      return;
+    }
     setSaving(true);
-    setTimeout(() => {
-      setScores(calculateScores(answers));
+    try {
+      const calculatedScores = calculateScores(answers);
+      await api("/sdq", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: activePatient.id,
+          responses: answers,
+          scores: calculatedScores,
+        }),
+      });
+      setScores(calculatedScores);
       setSubmitted(true);
+      showToast({
+        title: "Assessment Submitted!",
+        description: "SDQ results have been saved successfully.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Failed to save SDQ:", err);
+      showToast({
+        title: "Submission Failed",
+        description: err.message || "An error occurred while saving the assessment.",
+        type: "error",
+      });
+    } finally {
       setSaving(false);
-    }, 800);
+    }
   };
 
   useEffect(() => {
@@ -212,7 +240,7 @@ function SdqPage() {
           return (
             <div
               key={q.id}
-              className={`sdq-question rounded-2xl p-5 border transition-all ${
+              className={`sdq-question rounded-2xl p-5 border transition-colors duration-200 ${
                 answers[q.id] !== undefined ? "border-blue-500/30" : ""
               }`}
               style={{ background: "var(--card-bg)", borderColor: answers[q.id] !== undefined ? undefined : "var(--card-border)" }}

@@ -1,4 +1,4 @@
-const API = import.meta.env.VITE_API_URL || "http://localhost:4001/api";
+export const API = import.meta.env.VITE_API_URL || "http://localhost:4001/api";
 
 export async function getToken() {
   const { auth } = await import("../lib/firebase");

@@ -2,19 +2,33 @@ import { Router } from "express";
 import { auth, db } from "../config/firebase.js";
 import { v4 as uuidv4 } from "uuid";
 import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 const router = Router();
 
 // Configure Nodemailer for Email
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+function createTransporter() {
+  const user = process.env.EMAIL_USER;
+  const pass = process.env.EMAIL_PASS;
+
+  if (!user || !pass) {
+    return null;
+  }
+
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user, pass },
+  });
+}
+
+const transporter = createTransporter();
 
 async function sendEmail(to, otp) {
+  if (!transporter) {
+    console.log("[DEV] OTP for", to, ":", otp);
+    return;
+  }
+
   await transporter.sendMail({
     from: `"Aura Track" <${process.env.EMAIL_USER}>`,
     to,
@@ -48,7 +62,7 @@ async function sendEmail(to, otp) {
 
 // Generate 6-digit OTP
 function generateOtp() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 }
 
 // Send OTP to user's phone/email

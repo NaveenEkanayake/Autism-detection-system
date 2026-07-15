@@ -66,6 +66,14 @@ router.delete("/:id", verifyToken, async (req, res) => {
     if (!doc.exists || doc.data().parentUid !== req.user.uid) {
       return res.status(404).json({ error: "Document not found" });
     }
+    const data = doc.data();
+    if (data.fileUrl) {
+      const bucketPrefix = `https://storage.googleapis.com/${bucket.name}/`;
+      const fileName = data.fileUrl.replace(bucketPrefix, "");
+      await bucket.file(fileName).delete().catch((err) => {
+        console.error(`Failed to delete document file ${fileName} from storage:`, err.message);
+      });
+    }
     await doc.ref.delete();
     res.json({ message: "Document deleted" });
   } catch (err) {

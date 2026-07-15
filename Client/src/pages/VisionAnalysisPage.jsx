@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import PageWrapper from "../components/Layout/PageWrapper";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle, Loader2, Upload } from "lucide-react";
 import Stepper from "../components/ui/Stepper";
 
 export default function VisionAnalysisPage() {

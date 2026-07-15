@@ -2,11 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo } from "lucide-react";
-
-const DEMO_DOCUMENTS = [
-  { id: "1", name: "SDQ_Assessment_Report.pdf", type: "application/pdf", size_bytes: 245000, uploaded_at: "2026-05-20T10:30:00Z", userId: "demo-user-1" },
-  { id: "2", name: "Growth_Chart_March.png", type: "image/png", size_bytes: 1800000, uploaded_at: "2026-05-18T14:00:00Z", userId: "demo-user-1" },
-];
+import { usePatients } from "../hooks/PatientsContext";
+import { api, getToken, API } from "../lib/api";
+import { showToast } from "../components/ui/toast";
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -23,8 +21,9 @@ function getFileIcon(type) {
 
 function DocumentLibraryPage() {
   const navigate = useNavigate();
-  const [documents, setDocuments] = useState(DEMO_DOCUMENTS);
-  const [loading, setLoading] = useState(false);
+  const { activePatient } = usePatients();
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
@@ -33,6 +32,24 @@ function DocumentLibraryPage() {
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
   const docsRef = useRef(null);
+
+  // Fetch documents from backend
+  useEffect(() => {
+    if (!activePatient?.id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    api(`/documents/${activePatient.id}`)
+      .then((data) => {
+        setDocuments(data || []);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch documents:", err);
+        setDocuments([]);
+      })
+      .finally(() => setLoading(false));
+  }, [activePatient?.id]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -49,50 +66,142 @@ function DocumentLibraryPage() {
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); };
   const handleClick = () => fileInputRef.current?.click();
 
-  const handleFiles = (files) => {
-    if (files.length === 0) return;
-    setUploading(true);
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setUploading(false);
-          const newDoc = {
-            id: Date.now().toString(),
-            name: files[0].name,
-            type: files[0].type || "application/octet-stream",
-            size_bytes: files[0].size,
-            uploaded_at: new Date().toISOString(),
-            userId: "demo-user-1",
-          };
-          setDocuments((prev) => [newDoc, ...prev]);
-          return 0;
+  const uploadFile = (file) => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("patientId", activePatient.id);
+      formData.append("type", file.type || "other");
+
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
         }
-        return p + 20;
-      });
-    }, 300);
+      };
+
+      xhr.onload = async () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const doc = JSON.parse(xhr.responseText);
+            resolve(doc);
+          } catch {
+            reject(new Error("Invalid response from server"));
+          }
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || "Upload failed"));
+          } catch {
+            reject(new Error("Upload failed"));
+          }
+        }
+      };
+
+      xhr.onerror = () => reject(new Error("Network error during upload"));
+      xhr.onabort = () => reject(new Error("Upload cancelled"));
+
+      getToken().then((token) => {
+        xhr.open("POST", `${API}/documents/upload`);
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.send(formData);
+      }).catch(reject);
+    });
   };
 
-  const handleDelete = (id) => {
-    const el = document.querySelector(`[data-doc-id="${id}"]`);
-    if (el) {
-      gsap.to(el, {
-        opacity: 0, x: -30, height: 0, padding: 0, margin: 0,
-        duration: 0.3, ease: "power2.in",
-        onComplete: () => setDocuments((prev) => prev.filter((d) => d.id !== id)),
+  const handleFiles = async (files) => {
+    if (!files.length || !activePatient?.id) return;
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const doc = await uploadFile(files[0]);
+      setDocuments((prev) => [doc, ...prev]);
+      setUploadProgress(100);
+      showToast({
+        title: "Upload Complete",
+        description: `${doc.name} uploaded successfully`,
+        type: "success",
       });
-    } else {
-      setDocuments((prev) => prev.filter((d) => d.id !== id));
+    } catch (err) {
+      console.error("Upload error:", err);
+      showToast({
+        title: "Upload Failed",
+        description: err.message,
+        type: "error",
+      });
+    } finally {
+      setTimeout(() => {
+        setUploading(false);
+        setUploadProgress(0);
+      }, 500);
     }
   };
 
-  const handleGeneratePdf = () => {
+  const handleDelete = async (id) => {
+    try {
+      await api(`/documents/${id}`, { method: "DELETE" });
+      const el = document.querySelector(`[data-doc-id="${id}"]`);
+      if (el) {
+        gsap.to(el, {
+          opacity: 0, x: -30, height: 0, padding: 0, margin: 0,
+          duration: 0.3, ease: "power2.in",
+          onComplete: () => setDocuments((prev) => prev.filter((d) => d.id !== id)),
+        });
+      } else {
+        setDocuments((prev) => prev.filter((d) => d.id !== id));
+      }
+      showToast({
+        title: "Document Deleted",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Delete error:", err);
+      showToast({
+        title: "Delete Failed",
+        description: err.message,
+        type: "error",
+      });
+    }
+  };
+
+  const handleGeneratePdf = async () => {
+    if (!activePatient?.id) {
+      showToast({
+        title: "No Child Selected",
+        description: "Please select or add a child profile to generate a report.",
+        type: "error",
+      });
+      return;
+    }
+
     setGeneratingPdf(true);
-    setTimeout(() => {
-      setGeneratingPdf(false);
+    try {
+      const response = await api(`/documents/generate-report/${activePatient.id}`, {
+        method: "POST",
+      });
+
+      if (response?.downloadUrl) {
+        window.open(response.downloadUrl, "_blank");
+      }
+
       setPdfDone(true);
-    }, 2000);
+      showToast({
+        title: "Report Generated",
+        description: "PDF report has been created successfully.",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      showToast({
+        title: "Generation Failed",
+        description: err.message || "Could not generate PDF report.",
+        type: "error",
+      });
+      setPdfDone(false);
+    } finally {
+      setGeneratingPdf(false);
+    }
   };
 
   return (
@@ -148,7 +257,12 @@ function DocumentLibraryPage() {
 
       <div ref={docsRef} className="doc-section space-y-3">
         <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Your Documents ({documents.length})</h3>
-        {documents.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading documents...</p>
+          </div>
+        ) : documents.length === 0 ? (
           <div className="text-center py-12 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
             <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
             <p style={{ color: "var(--text-secondary)" }}>No documents yet</p>

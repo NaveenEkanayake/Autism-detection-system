@@ -1,21 +1,73 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Mail, KeyRound, ArrowLeft, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import GradientButton from "../ui/GradientButton";
 import { showToast } from "../ui/toast";
+import { API } from "../../lib/api";
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const API = "http://localhost:4001/api";
+function validateEmail(email) {
+  if (!email.trim()) return "Email is required.";
+  if (!EMAIL_REGEX.test(email.trim())) return "Please enter a valid email address.";
+  return "";
+}
+
+function validateOtp(otp) {
+  if (!otp) return "Verification code is required.";
+  if (otp.length !== 6) return "Code must be exactly 6 digits.";
+  if (!/^\d{6}$/.test(otp)) return "Code must contain only numbers.";
+  return "";
+}
+
+function validatePassword(password) {
+  if (!password) return "Password is required.";
+  if (password.length < 6) return "Password must be at least 6 characters.";
+  if (password.length > 128) return "Password is too long.";
+  return "";
+}
 
 function ForgotPasswordForm({ onBackToLogin }) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ email: "", otp: "", newPassword: "" });
+  const [fieldErrors, setFieldErrors] = useState({ email: "", otp: "", newPassword: "" });
+  const [touched, setTouched] = useState({ email: false, otp: false, newPassword: false });
   const [resetToken, setResetToken] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleChange = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+    if (touched[field]) {
+      let err = "";
+      if (field === "email") err = validateEmail(value);
+      else if (field === "otp") err = validateOtp(value);
+      else if (field === "newPassword") err = validatePassword(value);
+      setFieldErrors((prev) => ({ ...prev, [field]: err }));
+    }
+  };
+
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    let err = "";
+    if (field === "email") err = validateEmail(form.email);
+    else if (field === "otp") err = validateOtp(form.otp);
+    else if (field === "newPassword") err = validatePassword(form.newPassword);
+    setFieldErrors((prev) => ({ ...prev, [field]: err }));
+  };
+
+  const isStep1Valid = useMemo(() => EMAIL_REGEX.test(form.email.trim()), [form.email]);
+  const isStep2Valid = useMemo(() => /^\d{6}$/.test(form.otp), [form.otp]);
+  const isStep3Valid = useMemo(() => form.newPassword.length >= 6, [form.newPassword]);
 
   const handleSendOtp = async (e) => {
     if (e) e.preventDefault();
     setError("");
+
+    const emailErr = validateEmail(form.email);
+    setFieldErrors((prev) => ({ ...prev, email: emailErr }));
+    setTouched((prev) => ({ ...prev, email: true }));
+    if (emailErr) return;
+
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/auth/forgot/send-otp`, {
@@ -37,6 +89,12 @@ function ForgotPasswordForm({ onBackToLogin }) {
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
     setError("");
+
+    const otpErr = validateOtp(form.otp);
+    setFieldErrors((prev) => ({ ...prev, otp: otpErr }));
+    setTouched((prev) => ({ ...prev, otp: true }));
+    if (otpErr) return;
+
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/auth/forgot/verify-otp`, {
@@ -59,6 +117,12 @@ function ForgotPasswordForm({ onBackToLogin }) {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError("");
+
+    const passErr = validatePassword(form.newPassword);
+    setFieldErrors((prev) => ({ ...prev, newPassword: passErr }));
+    setTouched((prev) => ({ ...prev, newPassword: true }));
+    if (passErr) return;
+
     setSubmitting(true);
     try {
       const res = await fetch(`${API}/auth/forgot/reset`, {
@@ -96,14 +160,20 @@ function ForgotPasswordForm({ onBackToLogin }) {
               <input
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => handleChange("email", e.target.value)}
+                onBlur={() => handleBlur("email")}
                 placeholder="you@example.com"
-                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 transition-all ${
+                  fieldErrors.email && touched.email ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/30" : "border-white/10 focus:border-blue-500/50 focus:ring-blue-500/30"
+                }`}
                 required
               />
             </div>
+            {fieldErrors.email && touched.email && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.email}</p>
+            )}
           </div>
-          <GradientButton type="submit" loading={submitting}>
+          <GradientButton type="submit" loading={submitting} disabled={!isStep1Valid}>
             <span className="label">{submitting ? "Sending..." : "Send Verification Code"}</span>
           </GradientButton>
         </form>
@@ -121,14 +191,23 @@ function ForgotPasswordForm({ onBackToLogin }) {
             <input
               type="text"
               value={form.otp}
-              onChange={(e) => setForm({ ...form, otp: e.target.value.replace(/\D/g, "").slice(0, 6) })}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                handleChange("otp", val);
+              }}
+              onBlur={() => handleBlur("otp")}
               placeholder="000000"
               maxLength={6}
-              className="w-full text-center text-2xl tracking-[0.5em] py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+              className={`w-full text-center text-2xl tracking-[0.5em] py-3 rounded-xl bg-white/5 border text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 transition-all ${
+                fieldErrors.otp && touched.otp ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/30" : "border-white/10 focus:border-blue-500/50 focus:ring-blue-500/30"
+              }`}
               required
             />
+            {fieldErrors.otp && touched.otp && (
+              <p className="mt-1 text-xs text-center text-red-400">{fieldErrors.otp}</p>
+            )}
           </div>
-          <GradientButton type="submit" loading={submitting}>
+          <GradientButton type="submit" loading={submitting} disabled={!isStep2Valid}>
             <span className="label">{submitting ? "Verifying..." : "Verify Code"}</span>
           </GradientButton>
 
@@ -159,9 +238,12 @@ function ForgotPasswordForm({ onBackToLogin }) {
               <input
                 type={showPassword ? "text" : "password"}
                 value={form.newPassword}
-                onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+                onChange={(e) => handleChange("newPassword", e.target.value)}
+                onBlur={() => handleBlur("newPassword")}
                 placeholder="At least 6 characters"
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                className={`w-full pl-10 pr-10 py-2.5 rounded-xl bg-white/5 border text-white placeholder:text-neutral-600 focus:outline-none focus:ring-1 transition-all ${
+                  fieldErrors.newPassword && touched.newPassword ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/30" : "border-white/10 focus:border-blue-500/50 focus:ring-blue-500/30"
+                }`}
                 required
                 minLength={6}
               />
@@ -173,8 +255,14 @@ function ForgotPasswordForm({ onBackToLogin }) {
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
+            {fieldErrors.newPassword && touched.newPassword && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.newPassword}</p>
+            )}
+            {form.newPassword.length > 0 && !fieldErrors.newPassword && (
+              <p className="mt-1 text-xs text-teal-400">Password looks good!</p>
+            )}
           </div>
-          <GradientButton type="submit" loading={submitting}>
+          <GradientButton type="submit" loading={submitting} disabled={!isStep3Valid}>
             <span className="label">{submitting ? "Resetting..." : "Reset Password"}</span>
           </GradientButton>
         </form>

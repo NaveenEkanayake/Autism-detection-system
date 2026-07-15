@@ -17,14 +17,14 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        console.log("👤 Auth state: logged in as", firebaseUser.email);
+        console.log("[Auth] User logged in:", firebaseUser.email);
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
           name: firebaseUser.displayName || firebaseUser.email?.split("@")[0],
         });
       } else {
-        console.log("👤 Auth state: logged out");
+        console.log("[Auth] User logged out");
         setUser(null);
       }
       setLoading(false);
@@ -35,10 +35,10 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
-      console.log("✅ Login successful:", result.user.email);
+      console.log("[Auth] Login successful:", result.user.email);
       return result;
     } catch (err) {
-      console.error("❌ Login failed:", err.code, err.message);
+      console.error("[Auth] Login failed:", err.code, err.message);
       throw err;
     }
   };
@@ -46,12 +46,12 @@ export function AuthProvider({ children }) {
   const signup = async (email, password, name) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("✅ Signup successful:", cred.user.email);
+      console.log("[Auth] Signup successful:", cred.user.email);
       await updateProfile(cred.user, { displayName: name });
-      console.log("✅ Profile updated with name:", name);
+      console.log("[Auth] Profile updated with name:", name);
       return cred;
     } catch (err) {
-      console.error("❌ Signup failed:", err.code, err.message);
+      console.error("[Auth] Signup failed:", err.code, err.message);
       throw err;
     }
   };
@@ -59,9 +59,9 @@ export function AuthProvider({ children }) {
   const logout = async () => {
     try {
       await signOut(auth);
-      console.log("✅ Logged out successfully");
+      console.log("[Auth] Logged out successfully");
     } catch (err) {
-      console.error("❌ Logout failed:", err.code, err.message);
+      console.error("[Auth] Logout failed:", err.code, err.message);
       throw err;
     }
   };

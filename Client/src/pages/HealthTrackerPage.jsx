@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Activity, TrendingUp, Moon, X } from "lucide-react";
 import { usePatients } from "../hooks/PatientsContext";
+import { api } from "../lib/api";
+import { showToast } from "../components/ui/toast";
 import TabBar from "../components/Health/TabBar";
 import MilestoneSection from "../components/Health/MilestoneSection";
 import GrowthChartSection from "../components/Health/GrowthChartSection";
@@ -14,61 +16,6 @@ const TABS = [
   { id: "sleep", label: "Sleep", icon: Moon },
 ];
 
-const INITIAL_MILESTONES = {
-  social_smile: { completed: true, recorded_at: "2026-03-01" },
-  head_control: { completed: true, recorded_at: "2026-03-15" },
-  follows_object: { completed: true, recorded_at: "2026-04-10" },
-  reaches_objects: { completed: false },
-  first_laugh: { completed: true, recorded_at: "2026-04-20" },
-  sits_supported: { completed: false },
-  babbling: { completed: true, recorded_at: "2026-05-01" },
-  stranger_anxiety: { completed: false },
-  pincer_grasp: { completed: false },
-  crawling: { completed: false },
-  first_words: { completed: false },
-  walks_alone: { completed: false },
-  points_objects: { completed: false },
-  gestures: { completed: false },
-  understands_commands: { completed: false },
-  stacks_blocks: { completed: false },
-  says_phrases: { completed: false },
-  runs_stiffly: { completed: false },
-  feeds_self: { completed: false },
-  climbs_furniture: { completed: false },
-  recognizes_colors: { completed: false },
-  two_words: { completed: false },
-  runs_well: { completed: false },
-  parallel_play: { completed: false },
-  jumps: { completed: false },
-  dresses_self: { completed: false },
-  washes_hands: { completed: false },
-  speaks_sentences: { completed: false },
-  pedals_tricycle: { completed: false },
-  imaginary_play: { completed: false },
-  new_milestone: { completed: false },
-  follows_rules: { completed: false },
-  hops_one_foot: { completed: false },
-  counts: { completed: false },
-  brushes_teeth: { completed: false },
-  draws_person: { completed: false },
-  cooperative_play: { completed: false },
-  writes_name: { completed: false },
-  ties_shoes: { completed: false },
-  reads_words: { completed: false },
-  understands_time: { completed: false },
-};
-
-const INITIAL_GROWTH = [
-  { id: "g1", weight_kg: 7.5, height_cm: 68, head_cm: 44, recorded_at: "2026-04-01T10:00:00Z" },
-  { id: "g2", weight_kg: 8.2, height_cm: 71, head_cm: 45, recorded_at: "2026-05-01T10:00:00Z" },
-  { id: "g3", weight_kg: 8.8, height_cm: 73, head_cm: 45.5, recorded_at: "2026-06-01T10:00:00Z" },
-];
-
-const INITIAL_SLEEP = [
-  { id: "s1", start_time: "2026-06-01T21:00:00", end_time: "2026-06-02T07:00:00", duration_hours: 10, quality: "good", notes: "", recorded_at: "2026-06-02T07:00:00Z" },
-  { id: "s2", start_time: "2026-06-02T21:30:00", end_time: "2026-06-03T06:30:00", duration_hours: 9, quality: "fair", notes: "Woke up once", recorded_at: "2026-06-03T06:30:00Z" },
-];
-
 function HealthTrackerPage() {
   const navigate = useNavigate();
   const { activePatient, getAgeMonths } = usePatients();
@@ -76,30 +23,38 @@ function HealthTrackerPage() {
   const containerRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState("milestones");
-  const [milestones, setMilestones] = useState(() => {
-    const saved = localStorage.getItem("milestones");
-    return saved ? JSON.parse(saved) : INITIAL_MILESTONES;
-  });
-  const [growthLogs, setGrowthLogs] = useState(() => {
-    const saved = localStorage.getItem("growthLogs");
-    return saved ? JSON.parse(saved) : INITIAL_GROWTH;
-  });
-  const [sleepLogs, setSleepLogs] = useState(() => {
-    const saved = localStorage.getItem("sleepLogs");
-    return saved ? JSON.parse(saved) : INITIAL_SLEEP;
-  });
+  const [milestones, setMilestones] = useState({});
+  const [growthLogs, setGrowthLogs] = useState([]);
+  const [sleepLogs, setSleepLogs] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
+  // Fetch health data from backend
   useEffect(() => {
-    localStorage.setItem("milestones", JSON.stringify(milestones));
-  }, [milestones]);
-
-  useEffect(() => {
-    localStorage.setItem("growthLogs", JSON.stringify(growthLogs));
-  }, [growthLogs]);
-
-  useEffect(() => {
-    localStorage.setItem("sleepLogs", JSON.stringify(sleepLogs));
-  }, [sleepLogs]);
+    if (!activePatient?.id) {
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
+    Promise.all([
+      api(`/health/milestones/${activePatient.id}`).catch(() => []),
+      api(`/health/growth/${activePatient.id}`).catch(() => []),
+      api(`/health/sleep/${activePatient.id}`).catch(() => []),
+    ])
+      .then(([milestonesData, growthData, sleepData]) => {
+        // Convert milestones array to object for compatibility
+        const milestonesObj = {};
+        (milestonesData || []).forEach((m) => {
+          milestonesObj[m.id] = { completed: true, recorded_at: m.date };
+        });
+        setMilestones(milestonesObj);
+        setGrowthLogs(growthData || []);
+        setSleepLogs(sleepData || []);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch health data:", err);
+      })
+      .finally(() => setDataLoading(false));
+  }, [activePatient?.id]);
   const [showGrowthForm, setShowGrowthForm] = useState(false);
   const [showSleepForm, setShowSleepForm] = useState(false);
   const [growthForm, setGrowthForm] = useState({ weight_kg: "", height_cm: "", head_cm: "" });
@@ -123,56 +78,128 @@ function HealthTrackerPage() {
     }
   }, [activeTab]);
 
-  const handleToggleMilestone = (m) => {
+  const handleToggleMilestone = async (m) => {
+    const now = new Date().toISOString();
+    const isCompleted = milestones[m.key]?.completed;
+
+    if (!isCompleted && activePatient?.id) {
+      try {
+        await api("/health/milestones", {
+          method: "POST",
+          body: JSON.stringify({
+            patientId: activePatient.id,
+            title: m.label || m.key,
+            category: m.category || "general",
+            date: now,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to save milestone:", err);
+        showToast({ title: "Failed to save milestone", type: "error" });
+        return;
+      }
+    }
+
     setMilestones((prev) => ({
       ...prev,
-      [m.key]: prev[m.key]?.completed ? {} : { completed: true, recorded_at: new Date().toISOString() },
+      [m.key]: prev[m.key]?.completed ? {} : { completed: true, recorded_at: now },
     }));
   };
 
   const handleGrowthFormChange = (key, value) => setGrowthForm((prev) => ({ ...prev, [key]: value }));
-  const handleSaveGrowth = () => {
+  const handleSaveGrowth = async () => {
+    if (!activePatient?.id) return;
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const newRecord = await api("/health/growth", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: activePatient.id,
+          date: new Date().toISOString(),
+          weight: parseFloat(growthForm.weight_kg) || null,
+          height: parseFloat(growthForm.height_cm) || null,
+          headCircumference: parseFloat(growthForm.head_cm) || null,
+        }),
+      });
       setGrowthLogs((prev) => [
         ...prev,
-        { id: Date.now().toString(), weight_kg: parseFloat(growthForm.weight_kg) || 0, height_cm: parseFloat(growthForm.height_cm) || 0, head_cm: parseFloat(growthForm.head_cm) || 0, recorded_at: new Date().toISOString() },
+        newRecord,
       ]);
       setGrowthForm({ weight_kg: "", height_cm: "", head_cm: "" });
       setShowGrowthForm(false);
+      showToast({ title: "Growth record saved", type: "success" });
+    } catch (err) {
+      showToast({ title: "Failed to save growth", description: err.message, type: "error" });
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   const handleSleepFormChange = (key, value) => setSleepForm((prev) => ({ ...prev, [key]: value }));
-  const handleSaveSleep = () => {
+  const handleSaveSleep = async () => {
+    if (!activePatient?.id) return;
     setSaving(true);
-    setTimeout(() => {
+    try {
       const start = new Date(sleepForm.start_time);
       const end = new Date(sleepForm.end_time);
-      const durationHours = (end - start) / (1000 * 60 * 60);
-      setSleepLogs((prev) => [
-        { id: Date.now().toString(), start_time: sleepForm.start_time, end_time: sleepForm.end_time, duration_hours: durationHours > 0 ? durationHours : 0, quality: sleepForm.quality, notes: sleepForm.notes, recorded_at: new Date().toISOString() },
-        ...prev,
-      ]);
+      const newRecord = await api("/health/sleep", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: activePatient.id,
+          date: start.toISOString(),
+          bedtime: sleepForm.start_time,
+          wakeTime: sleepForm.end_time,
+          quality: sleepForm.quality,
+          naps: 0,
+        }),
+      });
+      setSleepLogs((prev) => [newRecord, ...prev]);
       setSleepForm({ start_time: "", end_time: "", quality: "good", notes: "" });
       setShowSleepForm(false);
+      showToast({ title: "Sleep log saved", type: "success" });
+    } catch (err) {
+      showToast({ title: "Failed to save sleep log", description: err.message, type: "error" });
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState({ label: "", category: "Social", age_months: "" });
 
-  const handleSaveMilestone = () => {
+  const handleSaveMilestone = async () => {
+    if (!activePatient?.id) return;
     setSaving(true);
-    setTimeout(() => {
-      // In a real app, you would add this to the MILESTONES list or state
-      alert(`Milestone "${milestoneForm.label}" added!`);
+    try {
+      const now = new Date().toISOString();
+      await api("/health/milestones", {
+        method: "POST",
+        body: JSON.stringify({
+          patientId: activePatient.id,
+          title: milestoneForm.label,
+          category: milestoneForm.category,
+          date: now,
+        }),
+      });
+
+      // Update local milestones state so it reflects immediately
+      setMilestones((prev) => ({
+        ...prev,
+        [milestoneForm.label.toLowerCase().replace(/\s+/g, "_")]: {
+          completed: true,
+          recorded_at: now
+        }
+      }));
+
       setMilestoneForm({ label: "", category: "Social", age_months: "" });
       setShowMilestoneForm(false);
+      showToast({ title: "Custom milestone saved!", type: "success" });
+    } catch (err) {
+      console.error("Failed to save milestone:", err);
+      showToast({ title: "Failed to save milestone", description: err.message, type: "error" });
+    } finally {
       setSaving(false);
-    }, 500);
+    }
   };
 
   return (
