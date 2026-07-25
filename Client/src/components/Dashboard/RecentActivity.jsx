@@ -19,7 +19,7 @@ export default function RecentActivity({ stats }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="rounded-2xl p-5 lg:col-span-2 border"
+      className="rounded-2xl p-5 border"
       style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
     >
       <div className="flex items-center gap-2.5 mb-5">

@@ -3,8 +3,8 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import AutismScreeningHero from "../components/herosection/HeroScreening/AutismScreeningHero";
 import FeaturesCards from "../components/ui/feature-shader-cards";
-import Background from "../components/3DBackground/Background";
-import LandingNav from "../components/Herosection/LandingNav/LandingNav";
+import Background from "../components/3d/Background";
+import LandingNav from "../components/Layout/LandingNav";
 import HoverFooter from "../components/ui/hover-footer";
 import { useTheme } from "../hooks/useTheme";
 

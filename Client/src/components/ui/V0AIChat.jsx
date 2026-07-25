@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useState } from "react";
 import { Textarea } from "./Textarea";
 import { cn } from "../../lib/utils";
 import {
@@ -12,50 +12,7 @@ import {
     Paperclip,
     PlusIcon,
 } from "lucide-react";
-
-function useAutoResizeTextarea({ minHeight, maxHeight }) {
-    const textareaRef = useRef(null);
-
-    const adjustHeight = useCallback(
-        (reset) => {
-            const textarea = textareaRef.current;
-            if (!textarea) return;
-
-            if (reset) {
-                textarea.style.height = `${minHeight}px`;
-                return;
-            }
-
-            textarea.style.height = `${minHeight}px`;
-
-            const newHeight = Math.max(
-                minHeight,
-                Math.min(
-                    textarea.scrollHeight,
-                    maxHeight ?? Number.POSITIVE_INFINITY
-                )
-            );
-
-            textarea.style.height = `${newHeight}px`;
-        },
-        [minHeight, maxHeight]
-    );
-
-    useEffect(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.style.height = `${minHeight}px`;
-        }
-    }, [minHeight]);
-
-    useEffect(() => {
-        const handleResize = () => adjustHeight();
-        window.addEventListener("resize", handleResize);
-        return () => window.removeEventListener("resize", handleResize);
-    }, [adjustHeight]);
-
-    return { textareaRef, adjustHeight };
-}
+import useAutoResizeTextarea from "../../hooks/useAutoResizeTextarea";
 
 export function VercelV0Chat() {
     const [value, setValue] = useState("");

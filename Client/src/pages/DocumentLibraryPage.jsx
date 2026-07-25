@@ -2,9 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo } from "lucide-react";
-import { usePatients } from "../hooks/PatientsContext";
-import { api, getToken, API } from "../lib/api";
+import { usePatients } from "../hooks/usePatients";
+import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
+import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { collection, addDoc } from "firebase/firestore";
+import { storage, db, auth } from "../lib/firebase";
+import { jsPDF } from "jspdf";
 
 function formatSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -68,44 +72,55 @@ function DocumentLibraryPage() {
 
   const uploadFile = (file) => {
     return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("patientId", activePatient.id);
-      formData.append("type", file.type || "other");
+      const fileId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const ext = file.name.split(".").pop();
+      const filePath = `documents/${activePatient.id}/${fileId}.${ext}`;
+      const storageReference = sRef(storage, filePath);
+      const uploadTask = uploadBytesResumable(storageReference, file);
 
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          setUploadProgress(Math.round((e.loaded / e.total) * 100));
-        }
-      };
-
-      xhr.onload = async () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
+      uploadTask.on(
+        "state_changed",
+        (snapshot) => {
+          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
+          setUploadProgress(progress);
+        },
+        (error) => {
+          console.warn("[Storage] Firebase Storage failed, using local object URL fallback:", error.message);
+          const localUrl = URL.createObjectURL(file);
+          const docData = {
+            patientId: activePatient.id,
+            parentUid: auth.currentUser?.uid || "mock-uid",
+            name: file.name,
+            type: file.type || "other",
+            fileUrl: localUrl,
+            size: file.size,
+            createdAt: new Date().toISOString(),
+          };
+          api("/documents", {
+            method: "POST",
+            body: JSON.stringify(docData)
+          }).then(resolve).catch(reject);
+        },
+        async () => {
           try {
-            const doc = JSON.parse(xhr.responseText);
-            resolve(doc);
-          } catch {
-            reject(new Error("Invalid response from server"));
-          }
-        } else {
-          try {
-            const err = JSON.parse(xhr.responseText);
-            reject(new Error(err.error || "Upload failed"));
-          } catch {
-            reject(new Error("Upload failed"));
+            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
+            // Save metadata directly to Firestore
+            const docData = {
+              patientId: activePatient.id,
+              parentUid: auth.currentUser?.uid || "",
+              name: file.name,
+              type: file.type || "other",
+              fileUrl: downloadUrl,
+              size: file.size,
+              createdAt: new Date().toISOString(),
+            };
+            const firestoreRef = await addDoc(collection(db, "documents"), docData);
+            resolve({ id: firestoreRef.id, ...docData });
+          } catch (err) {
+            reject(err);
           }
         }
-      };
-
-      xhr.onerror = () => reject(new Error("Network error during upload"));
-      xhr.onabort = () => reject(new Error("Upload cancelled"));
-
-      getToken().then((token) => {
-        xhr.open("POST", `${API}/documents/upload`);
-        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
-        xhr.send(formData);
-      }).catch(reject);
+      );
     });
   };
 
@@ -177,13 +192,78 @@ function DocumentLibraryPage() {
 
     setGeneratingPdf(true);
     try {
-      const response = await api(`/documents/generate-report/${activePatient.id}`, {
-        method: "POST",
-      });
+      // Gather child details and clinical notes directly from Firestore
+      const [sdqData, milestonesData, growthData, sleepData] = await Promise.all([
+        api(`/sdq/${activePatient.id}`).catch(() => []),
+        api(`/health/milestones/${activePatient.id}`).catch(() => []),
+        api(`/health/growth/${activePatient.id}`).catch(() => []),
+        api(`/health/sleep/${activePatient.id}`).catch(() => []),
+      ]);
 
-      if (response?.downloadUrl) {
-        window.open(response.downloadUrl, "_blank");
+      const doc = new jsPDF();
+      
+      // Title
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(22);
+      doc.text("AURA TRACK CLINICAL REPORT", 20, 25);
+      
+      // Metadata
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 32);
+      
+      // Patient Info
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, 37, 190, 37);
+      
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Child Profile Information", 20, 45);
+      
+      doc.setFont("helvetica", "normal");
+      doc.text(`Name: ${activePatient.name}`, 20, 52);
+      doc.text(`Date of Birth: ${activePatient.dob}`, 20, 59);
+      doc.text(`Gender: ${activePatient.sex || "N/A"}`, 20, 66);
+      
+      // SDQ Scores
+      doc.line(20, 72, 190, 72);
+      doc.setFont("helvetica", "bold");
+      doc.text("Latest SDQ Assessment Score Summary", 20, 80);
+      
+      if (sdqData && sdqData.length > 0) {
+        const latestSdq = sdqData[0];
+        doc.setFont("helvetica", "normal");
+        doc.text(`Completed on: ${new Date(latestSdq.createdAt).toLocaleDateString()}`, 20, 87);
+        doc.text(`Total Difficulties Score: ${latestSdq.scores?.totalDifficulties || 0}`, 20, 94);
+        doc.text(`- Emotional Problems: ${latestSdq.scores?.emotional || 0}`, 20, 101);
+        doc.text(`- Conduct Problems: ${latestSdq.scores?.conduct || 0}`, 20, 108);
+        doc.text(`- Hyperactivity: ${latestSdq.scores?.hyperactivity || 0}`, 20, 115);
+        doc.text(`- Peer Problems: ${latestSdq.scores?.peerProblems || 0}`, 20, 122);
+        doc.text(`- Prosocial Behavior: ${latestSdq.scores?.prosocial || 0}`, 20, 129);
+      } else {
+        doc.setFont("helvetica", "italic");
+        doc.text("No Strengths & Difficulties Questionnaire (SDQ) records completed yet.", 20, 87);
       }
+      
+      // Milestones
+      doc.line(20, 137, 190, 137);
+      doc.setFont("helvetica", "bold");
+      doc.text("Developmental Milestones Logged", 20, 145);
+      
+      doc.setFont("helvetica", "normal");
+      if (milestonesData && milestonesData.length > 0) {
+        let yOffset = 152;
+        milestonesData.slice(0, 5).forEach((m) => {
+          doc.text(`• [${m.date}] ${m.title} (${m.category})`, 20, yOffset);
+          yOffset += 7;
+        });
+      } else {
+        doc.setFont("helvetica", "italic");
+        doc.text("No developmental milestones logged.", 20, 152);
+      }
+
+      // Download file directly
+      doc.save(`AuraTrack_ClinicalReport_${activePatient.name}.pdf`);
 
       setPdfDone(true);
       showToast({

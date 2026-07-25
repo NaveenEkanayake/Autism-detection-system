@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ChevronLeft, ChevronRight, Send, RefreshCw, Trophy, AlertTriangle } from "lucide-react";
-import { usePatients } from "../hooks/PatientsContext";
+import { usePatients } from "../hooks/usePatients";
 import PageWrapper from "../components/Layout/PageWrapper";
 import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";

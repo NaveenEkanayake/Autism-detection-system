@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Activity, TrendingUp, Moon, X } from "lucide-react";
-import { usePatients } from "../hooks/PatientsContext";
+import { usePatients } from "../hooks/usePatients";
 import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
 import TabBar from "../components/Health/TabBar";

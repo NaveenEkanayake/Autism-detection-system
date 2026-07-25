@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { CheckCircle, Info, Upload, Sparkles } from "lucide-react";
-import { usePatients } from "../hooks/PatientsContext";
+import { usePatients } from "../hooks/usePatients";
 import Stepper from "../components/ui/Stepper";
 import { showToast } from "../components/ui/toast";
-import { getToken, API, api } from "../lib/api";
+import { api } from "../lib/api";
+import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { collection, addDoc } from "firebase/firestore";
+import { storage, db, auth } from "../lib/firebase";
 
 const DEMO_FALLBACK_RESULT = {
   detections: [
@@ -49,25 +52,41 @@ function VisionPage() {
     );
 
     try {
-      const token = await getToken();
-
-      const formData = new FormData();
-      formData.append("image", file);
-      formData.append("patientId", activePatient.id);
-
-      const res = await fetch(`${API}/vision/upload`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!res.ok) {
-        throw new Error("Upload failed");
+      const fileId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      const ext = file.name.split(".").pop();
+      const filePath = `visions/${activePatient.id}/${fileId}.${ext}`;
+      const storageReference = sRef(storage, filePath);
+      
+      let imageUrl = "";
+      try {
+        const uploadTask = await uploadBytes(storageReference, file);
+        imageUrl = await getDownloadURL(uploadTask.ref);
+      } catch (storageErr) {
+        console.warn("[Vision] Firebase Storage failed, using local URL fallback:", storageErr.message);
+        imageUrl = URL.createObjectURL(file);
       }
 
-      const analysisRecord = await res.json();
+      // Create a processing record directly inside Firestore / local
+      const docData = {
+        patientId: activePatient.id,
+        parentUid: auth.currentUser?.uid || "mock-uid",
+        imageUrl,
+        status: "processing",
+        results: null,
+        createdAt: new Date().toISOString()
+      };
+      
+      let analysisRecord;
+      try {
+        const firestoreRef = await addDoc(collection(db, "vision_analyses"), docData);
+        analysisRecord = { id: firestoreRef.id, ...docData };
+      } catch (firestoreErr) {
+        console.warn("[Vision] Firestore failed, logging locally:", firestoreErr.message);
+        analysisRecord = await api("/vision", {
+          method: "POST",
+          body: JSON.stringify(docData)
+        });
+      }
 
       await new Promise((resolve) => setTimeout(resolve, ANALYSIS_DELAY_MS));
 
@@ -83,14 +102,11 @@ function VisionPage() {
         type: "success",
       });
     } catch (err) {
-      console.warn("[Vision] Backend unavailable, using demo fallback:", err.message);
-
-      await new Promise((resolve) => setTimeout(resolve, ANALYSIS_DELAY_MS));
-      setVisionResult(DEMO_FALLBACK_RESULT);
+      console.error("[Vision] Analysis failed:", err.message);
       showToast({
-        title: "Analysis Complete (Demo Mode)",
-        description: "Behavioral patterns analyzed successfully.",
-        type: "success",
+        title: "Analysis Failed",
+        description: err.message,
+        type: "error",
       });
     } finally {
       setCurrentStep(3);
