@@ -16,13 +16,6 @@ import RecentActivity from "../components/Dashboard/RecentActivity";
 import GradientButton from "../components/ui/GradientButton";
 import AddChildForm from "../components/forms/AddChildForm";
 
-const QUICK_CARDS = [
-  { icon: Brain, title: "SDQ Assessment", desc: "25-item standardized behavioral screening", badge: "Clinical", color: "59,147,245", to: "/sdq" },
-  { icon: Camera, title: "Vision Analysis", desc: "Upload video/images for YOLOv8 AI detection", badge: "AI", color: "168,85,247", to: "/vision" },
-  { icon: TrendingUp, title: "Health Tracker", desc: "Milestones, growth charts, and sleep logging", badge: "Track", color: "20,184,166", to: "/health" },
-  { icon: FileText, title: "Document Library", desc: "Encrypted clinical document vault with PDF export", badge: "Storage", color: "245,176,65", to: "/documents" },
-];
-
 function FloatingOrbs() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
@@ -69,7 +62,7 @@ function AddChildModal({ open, onClose }) {
               <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b" style={{ borderColor: "var(--card-border)" }}>
                 <div>
                   <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Add a Child</h3>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Enter your child's details to begin tracking</p>
+                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Enter details to track development</p>
                 </div>
                 <button
                   onClick={onClose}
@@ -95,18 +88,129 @@ function EmptyState({ onOpenModal }) {
       <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-500/20 to-teal-500/20 flex items-center justify-center mb-6 border border-blue-500/10">
         <Baby className="w-10 h-10 text-blue-400" />
       </div>
-      <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Welcome to AuraTrack!</h2>
+      <h2 className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>Welcome to AuraTrack</h2>
       <p className="text-sm max-w-md mb-8" style={{ color: "var(--text-secondary)" }}>
-        Get started by adding your first child's profile. You'll be able to track milestones, growth, sleep patterns, and run SDQ assessments.
+        Get started by adding your first child profile. You will be able to track milestones, growth, sleep patterns, and run vision analyses and SDQ assessments.
       </p>
       <button
         onClick={onOpenModal}
-        className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+        className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer"
         style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
       >
         <UserPlus className="w-4 h-4" />
         Add Your First Child
       </button>
+    </div>
+  );
+}
+
+function RiskDonutChart({ patient, latestSdq, latestVision, loading }) {
+  let percentage = 0;
+  let hasData = false;
+  let riskLevel = "No Data";
+  let riskColor = "#6b7280"; // Neutral gray
+
+  if (patient && !loading) {
+    const hasSdq = latestSdq && latestSdq.scores && typeof latestSdq.scores.total === "number";
+    const hasVision = latestVision && typeof latestVision.riskScore === "number";
+
+    let totalScore = 0;
+    let counts = 0;
+
+    if (hasSdq) {
+      // Normalizes 0-40 SDQ score to 0-100 scale
+      totalScore += latestSdq.scores.total * 2.5;
+      counts += 1;
+      hasData = true;
+    }
+    if (hasVision) {
+      totalScore += latestVision.riskScore;
+      counts += 1;
+      hasData = true;
+    }
+
+    if (hasData && counts > 0) {
+      percentage = totalScore / counts;
+      if (percentage < 40) {
+        riskLevel = "Low Risk";
+        riskColor = "#14b8a6"; // Teal
+      } else if (percentage < 70) {
+        riskLevel = "Moderate Risk";
+        riskColor = "#f59e0b"; // Orange/Amber
+      } else {
+        riskLevel = "High Risk";
+        riskColor = "#ef4444"; // Red/Rose
+      }
+    }
+  }
+
+  // Circle geometry settings
+  const radius = 40;
+  const strokeWidth = 8;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = hasData ? circumference - (percentage / 100) * circumference : circumference;
+
+  return (
+    <div className="rounded-2xl p-5 border flex flex-col items-center text-center justify-between min-h-[260px] h-full" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+      <div className="w-full text-left">
+        <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Autism Risk Assessment</h3>
+        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Combined Vision and SDQ index</p>
+      </div>
+
+      <div className="relative w-36 h-36 flex items-center justify-center my-4">
+        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+          {/* Background circle */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="transparent"
+            stroke="var(--hover-bg)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Foreground circle showing risk score */}
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="transparent"
+            stroke={riskColor}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+
+        {/* Center Text */}
+        <div className="absolute flex flex-col items-center justify-center">
+          {!patient ? (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">No Child</span>
+          ) : !hasData ? (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">No Data</span>
+          ) : (
+            <>
+              <span className="text-2xl font-black tracking-tight" style={{ color: "var(--text-primary)" }}>
+                {percentage.toFixed(0)}%
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-widest mt-0.5" style={{ color: riskColor }}>
+                {riskLevel}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>
+        {!patient ? (
+          "Please add a child to view screening risk"
+        ) : !hasData ? (
+          "Complete a Vision or SDQ assessment"
+        ) : (
+          "Based on multi-modal evaluations"
+        )}
+      </div>
     </div>
   );
 }
@@ -128,12 +232,17 @@ function DashboardPage() {
     growth: 0,
     documents: 0,
     sleep: 0,
+    vision: 0,
   });
   const [statsLoading, setStatsLoading] = useState(false);
+  const [latestSdq, setLatestSdq] = useState(null);
+  const [latestVision, setLatestVision] = useState(null);
 
   useEffect(() => {
     if (!activePatient?.id) {
-      setStats({ sdq: 0, milestones: 0, growth: 0, documents: 0, sleep: 0 });
+      setStats({ sdq: 0, milestones: 0, growth: 0, documents: 0, sleep: 0, vision: 0 });
+      setLatestSdq(null);
+      setLatestVision(null);
       return;
     }
     setStatsLoading(true);
@@ -143,15 +252,19 @@ function DashboardPage() {
       api(`/health/growth/${activePatient.id}`).catch(() => []),
       api(`/documents/${activePatient.id}`).catch(() => []),
       api(`/health/sleep/${activePatient.id}`).catch(() => []),
+      api(`/vision/${activePatient.id}`).catch(() => []),
     ])
-      .then(([sdqData, milestonesData, growthData, documentsData, sleepData]) => {
+      .then(([sdqData, milestonesData, growthData, documentsData, sleepData, visionData]) => {
         setStats({
           sdq: (sdqData || []).length,
           milestones: (milestonesData || []).length,
           growth: (growthData || []).length,
           documents: (documentsData || []).length,
           sleep: (sleepData || []).length,
+          vision: (visionData || []).length,
         });
+        setLatestSdq(sdqData?.[0] || null);
+        setLatestVision(visionData?.[0] || null);
       })
       .catch((err) => {
         console.error("Failed to fetch dashboard stats:", err);
@@ -161,6 +274,7 @@ function DashboardPage() {
 
   const dynamicStats = [
     { label: "SDQ Assessments", value: stats.sdq, icon: Brain, color: "text-blue-400" },
+    { label: "Vision Screenings", value: stats.vision, icon: Camera, color: "text-purple-400" },
     { label: "Milestones Logged", value: stats.milestones, icon: Activity, color: "text-teal-400" },
     { label: "Growth Records", value: stats.growth, icon: TrendingUp, color: "text-cyan-400" },
     { label: "Documents", value: stats.documents, icon: FileText, color: "text-amber-400" },
@@ -204,10 +318,19 @@ function DashboardPage() {
             </div>
           </div>
         </div>
-        <EmptyState onOpenModal={() => setShowAddChild(true)} />
+        <div className="max-w-2xl mx-auto mt-12 border rounded-3xl p-6" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <EmptyState onOpenModal={() => setShowAddChild(true)} />
+        </div>
       </div>
     );
   }
+
+  const QUICK_CARDS = [
+    { icon: Brain, title: "SDQ Assessment", desc: "25-item standardized behavioral screening", badge: "Clinical", color: "59,147,245", to: "/sdq" },
+    { icon: Camera, title: "Vision Analysis", desc: "Upload video/images for AI object detection", badge: "AI", color: "168,85,247", to: "/vision" },
+    { icon: TrendingUp, title: "Health Tracker", desc: "Milestones, growth charts, and sleep logging", badge: "Track", color: "20,184,166", to: "/health" },
+    { icon: FileText, title: "Document Library", desc: "Clinical document vault with PDF export", badge: "Storage", color: "245,176,65", to: "/documents" },
+  ];
 
   return (
     <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -230,7 +353,7 @@ function DashboardPage() {
           </div>
           <button
             onClick={() => setShowAddChild(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer"
             style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
           >
             <Plus className="w-4 h-4" />
@@ -250,15 +373,23 @@ function DashboardPage() {
           </h2>
           <div className="flex-1 h-px" style={{ background: "var(--card-border)" }} />
         </div>
-        <div ref={statsRef} className="grid grid-cols-2 md:grid-cols-5 gap-6 md:gap-8 pb-8">
-          {dynamicStats.map((stat, idx) => (
-            <div
-              key={stat.label}
-              className={idx === dynamicStats.length - 1 ? "col-span-2 md:col-span-1" : ""}
-            >
-              <StatCard {...stat} loading={statsLoading} />
-            </div>
-          ))}
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch pb-4">
+          {/* Left Column: Autism Risk Donut */}
+          <div className="md:col-span-1">
+            <RiskDonutChart 
+              patient={activePatient} 
+              latestSdq={latestSdq} 
+              latestVision={latestVision} 
+              loading={statsLoading} 
+            />
+          </div>
+          {/* Right Column: Statistics Grid */}
+          <div ref={statsRef} className="md:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {dynamicStats.map((stat) => (
+              <StatCard key={stat.label} {...stat} loading={statsLoading} />
+            ))}
+          </div>
         </div>
       </div>
 

@@ -5,21 +5,6 @@ import { usePatients } from "../hooks/usePatients";
 import Stepper from "../components/ui/Stepper";
 import { showToast } from "../components/ui/toast";
 import { api } from "../lib/api";
-import { ref as sRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
-import { storage, db, auth } from "../lib/firebase";
-
-const DEMO_FALLBACK_RESULT = {
-  detections: [
-    { label: "Eye Contact", confidence: 0.87 },
-    { label: "Facial Expression", confidence: 0.79 },
-    { label: "Hand Gesture", confidence: 0.72 },
-  ],
-  behavioral_flags: ["Sustained attention detected", "Social gaze present"],
-  risk_indicators: [],
-};
-
-const ANALYSIS_DELAY_MS = 2500;
 
 function VisionPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -52,50 +37,28 @@ function VisionPage() {
     );
 
     try {
-      const fileId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      const ext = file.name.split(".").pop();
-      const filePath = `visions/${activePatient.id}/${fileId}.${ext}`;
-      const storageReference = sRef(storage, filePath);
-      
-      let imageUrl = "";
-      try {
-        const uploadTask = await uploadBytes(storageReference, file);
-        imageUrl = await getDownloadURL(uploadTask.ref);
-      } catch (storageErr) {
-        console.warn("[Vision] Firebase Storage failed, using local URL fallback:", storageErr.message);
-        imageUrl = URL.createObjectURL(file);
-      }
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("childId", activePatient.id);
 
-      // Create a processing record directly inside Firestore / local
-      const docData = {
-        patientId: activePatient.id,
-        parentUid: auth.currentUser?.uid || "mock-uid",
-        imageUrl,
-        status: "processing",
-        results: null,
-        createdAt: new Date().toISOString()
-      };
-      
-      let analysisRecord;
-      try {
-        const firestoreRef = await addDoc(collection(db, "vision_analyses"), docData);
-        analysisRecord = { id: firestoreRef.id, ...docData };
-      } catch (firestoreErr) {
-        console.warn("[Vision] Firestore failed, logging locally:", firestoreErr.message);
-        analysisRecord = await api("/vision", {
-          method: "POST",
-          body: JSON.stringify(docData)
-        });
-      }
-
-      await new Promise((resolve) => setTimeout(resolve, ANALYSIS_DELAY_MS));
-
-      const finalRecord = await api(`/vision/${analysisRecord.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ results: DEMO_FALLBACK_RESULT }),
+      const result = await api("/vision/analyze", {
+        method: "POST",
+        body: formData,
       });
 
-      setVisionResult(finalRecord.results || DEMO_FALLBACK_RESULT);
+      console.log("YOLOv8 Raw API Response:", result);
+
+      // Normalize results for frontend display safely
+      const normalized = {
+        detections: result.detections || [],
+        behavioral_flags: result.behavioralFlags || result.behavioral_flags || (result.riskScore < 40 ? ["Typical behavior patterns"] : ["Behavior patterns under review"]),
+        risk_indicators: result.riskIndicators || result.risk_indicators || [],
+        summary: result.summary || "Analysis completed.",
+        riskScore: result.riskScore || 0,
+        riskLevel: result.riskLevel || "low"
+      };
+
+      setVisionResult(normalized);
       showToast({
         title: "Analysis Complete",
         description: "Vision behavioral patterns analyzed successfully.",
@@ -105,9 +68,11 @@ function VisionPage() {
       console.error("[Vision] Analysis failed:", err.message);
       showToast({
         title: "Analysis Failed",
-        description: err.message,
+        description: err.message || "An error occurred during analysis.",
         type: "error",
       });
+      setUploadedFile(null);
+      setCurrentStep(1);
     } finally {
       setCurrentStep(3);
       setProcessing(false);
@@ -167,7 +132,7 @@ function VisionPage() {
               </div>
             )}
           </div>
-          <input type="file" accept="image/*,video/*" className="hidden" onChange={handleVisionUpload} />
+          <input type="file" accept="image/*,video/*" className="hidden" onChange={handleVisionUpload} disabled={processing} />
         </label>
       </div>
 
@@ -186,42 +151,52 @@ function VisionPage() {
       {visionResult && !processing && (
         <div ref={resultRef} className="rounded-2xl p-6 space-y-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Detection Results</h3>
+            <div>
+              <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Detection Results</h3>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Autism Screening Score: <span className="font-bold">{visionResult.riskScore}%</span> ({visionResult.riskLevel} risk)</p>
+            </div>
             <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-teal-500/15 text-teal-400 border border-teal-500/30">
               <CheckCircle className="w-3 h-3" /> Analysis Complete
             </span>
           </div>
 
-          <div className="space-y-3">
-            <p className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>Detected Objects</p>
-            {visionResult.detections.map((d, i) => (
-              <div key={i} className="detection-item flex items-center gap-4 p-3 rounded-xl border" style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)" }}>
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-400 flex-shrink-0" />
-                <span className="text-sm flex-1" style={{ color: "var(--text-primary)" }}>{d.label}</span>
-                <div className="flex items-center gap-3">
-                  <div className="w-24 h-2 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
-                    <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700" style={{ width: d.confidence * 100 + "%" }} />
+          {visionResult.detections && visionResult.detections.length > 0 && (
+            <div className="space-y-3">
+              <p className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>Detected Patterns</p>
+              {visionResult.detections.map((d, i) => (
+                <div key={i} className="detection-item flex items-center gap-4 p-3 rounded-xl border" style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)" }}>
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-400 flex-shrink-0" />
+                  <span className="text-sm flex-1" style={{ color: "var(--text-primary)" }}>{d.label}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-24 h-2 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
+                      <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-700" style={{ width: d.confidence * 100 + "%" }} />
+                    </div>
+                    <span className="text-xs w-10 text-right font-mono" style={{ color: "var(--text-muted)" }}>{(d.confidence * 100).toFixed(0)}%</span>
                   </div>
-                  <span className="text-xs w-10 text-right font-mono" style={{ color: "var(--text-muted)" }}>{(d.confidence * 100).toFixed(0)}%</span>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div>
-            <p className="font-medium text-sm mb-2" style={{ color: "var(--text-primary)" }}>Behavioral Flags</p>
+            <p className="font-medium text-sm mb-2" style={{ color: "var(--text-primary)" }}>Behavioral Observations</p>
             <div className="flex flex-wrap gap-2">
               {visionResult.behavioral_flags.map((f) => (
                 <span key={f} className="behavioral-flag flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-teal-500/15 text-teal-400 border border-teal-500/30">
                   <CheckCircle className="w-3 h-3" /> {f}
                 </span>
               ))}
-              {visionResult.risk_indicators.length === 0 && (
-                <span className="text-sm flex items-center gap-1.5" style={{ color: "var(--text-muted)" }}>
-                  <Info className="w-3.5 h-3.5" /> No risk indicators detected
+              {visionResult.risk_indicators && visionResult.risk_indicators.map((f) => (
+                <span key={f} className="behavioral-flag flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full bg-red-500/15 text-red-400 border border-red-500/30">
+                  <Info className="w-3 h-3" /> {f}
                 </span>
-              )}
+              ))}
             </div>
+          </div>
+
+          <div className="p-4 rounded-xl border" style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)" }}>
+            <p className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>Summary</p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{visionResult.summary}</p>
           </div>
         </div>
       )}

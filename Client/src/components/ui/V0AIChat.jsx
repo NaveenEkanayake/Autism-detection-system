@@ -1,44 +1,150 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Textarea } from "./Textarea";
 import { cn } from "../../lib/utils";
+import { usePatients } from "../../hooks/usePatients";
+import { api } from "../../lib/api";
 import {
-    ImageIcon,
-    FileUp,
-    MonitorIcon,
-    CircleUserRound,
     ArrowUpIcon,
     Paperclip,
     PlusIcon,
+    Bot,
+    User
 } from "lucide-react";
 import useAutoResizeTextarea from "../../hooks/useAutoResizeTextarea";
 
 export function VercelV0Chat() {
     const [value, setValue] = useState("");
+    const [messages, setMessages] = useState([
+        {
+            role: "assistant",
+            text: "Hello! I am your supportive developmental screening assistant. Ask me questions about parenting, early intervention, or your child's latest screening assessments."
+        }
+    ]);
+    const [sending, setSending] = useState(false);
+    const { activePatient } = usePatients();
+    const chatEndRef = useRef(null);
+
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 60,
         maxHeight: 200,
     });
 
+    useEffect(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    const handleSendMessage = async () => {
+        const query = value.trim();
+        if (!query || sending) return;
+
+        setValue("");
+        adjustHeight(true);
+        setSending(true);
+
+        // Add user message to history
+        setMessages((prev) => [...prev, { role: "user", text: query }]);
+
+        try {
+            const data = await api("/ai/suggest", {
+                method: "POST",
+                body: JSON.stringify({
+                    message: query,
+                    childId: activePatient?.id || null
+                })
+            });
+            setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+        } catch (err) {
+            console.error("AI chat error:", err);
+            setMessages((prev) => [
+                ...prev,
+                { role: "assistant", text: "Sorry, I could not complete that request. Check your network or API keys and try again." }
+            ]);
+        } finally {
+            setSending(false);
+        }
+    };
+
     const handleKeyDown = (e) => {
         if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
-            if (value.trim()) {
-                setValue("");
-                adjustHeight(true);
-            }
+            handleSendMessage();
         }
     };
 
     return (
-        <div className="flex flex-col items-center w-full max-w-4xl mx-auto p-4 space-y-8">
-            <h1 className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>
-                What can I help you ship?
-            </h1>
+        <div className="flex flex-col w-full max-w-4xl mx-auto h-[600px] border rounded-3xl overflow-hidden" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            {/* Header info */}
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: "var(--card-border)" }}>
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20">
+                        <Bot className="w-5 h-5 text-blue-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>Developmental Screening Assistant</h2>
+                        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                            {activePatient ? `Analyzing development for ${activePatient.name}` : "General advice mode"}
+                        </p>
+                    </div>
+                </div>
+                {activePatient && (
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/20">
+                        {activePatient.name} Selected
+                    </span>
+                )}
+            </div>
 
-            <div className="w-full">
-                <div className="relative rounded-xl border" style={{ background: "var(--sidebar-bg)", borderColor: "var(--sidebar-border)" }}>
+            {/* Message history */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                {messages.map((msg, i) => (
+                    <div
+                        key={i}
+                        className={cn(
+                            "flex items-start gap-4 max-w-[80%]",
+                            msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 border",
+                                msg.role === "user"
+                                    ? "bg-blue-500/15 text-blue-400 border-blue-500/20"
+                                    : "bg-teal-500/15 text-teal-400 border-teal-500/20"
+                            )}
+                        >
+                            {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                        </div>
+                        <div
+                            className={cn(
+                                "rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap border",
+                                msg.role === "user"
+                                    ? "bg-blue-500/5 text-blue-200 border-blue-500/15"
+                                    : "bg-white/[0.02] text-neutral-200 border-white/[0.08]"
+                            )}
+                        >
+                            {msg.text}
+                        </div>
+                    </div>
+                ))}
+                {sending && (
+                    <div className="flex items-start gap-4 max-w-[80%] mr-auto">
+                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 border bg-teal-500/15 text-teal-400 border-teal-500/20">
+                            <Bot className="w-4 h-4 animate-pulse" />
+                        </div>
+                        <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed border bg-white/[0.02] text-neutral-400 border-white/[0.08] flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                    </div>
+                )}
+                <div ref={chatEndRef} />
+            </div>
+
+            {/* Input area */}
+            <div className="p-4 border-t" style={{ borderColor: "var(--card-border)" }}>
+                <div className="relative rounded-xl border bg-white/[0.01]" style={{ borderColor: "var(--card-border)" }}>
                     <div className="overflow-y-auto">
                         <Textarea
                             ref={textareaRef}
@@ -48,7 +154,7 @@ export function VercelV0Chat() {
                                 adjustHeight();
                             }}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask v0 a question..."
+                            placeholder={activePatient ? `Ask about ${activePatient.name}'s progress...` : "Ask a question..."}
                             className={cn(
                                 "w-full px-4 py-3",
                                 "resize-none",
@@ -64,14 +170,16 @@ export function VercelV0Chat() {
                                 overflow: "hidden",
                                 color: "var(--text-primary)"
                             }}
+                            disabled={sending}
                         />
                     </div>
 
-                    <div className="flex items-center justify-between p-3 border-t" style={{ borderColor: "var(--sidebar-border)" }}>
+                    <div className="flex items-center justify-between p-3 border-t" style={{ borderColor: "var(--card-border)" }}>
                         <div className="flex items-center gap-2">
                             <button
                                 type="button"
                                 className="group p-2 rounded-lg transition-colors flex items-center gap-1 hover:bg-white/5"
+                                disabled={sending}
                             >
                                 <Paperclip className="w-4 h-4" style={{ color: "var(--text-secondary)" }} />
                                 <span className="text-xs text-neutral-400 hidden group-hover:inline transition-opacity">
@@ -83,18 +191,21 @@ export function VercelV0Chat() {
                             <button
                                 type="button"
                                 className="px-2 py-1 rounded-lg text-sm text-zinc-400 transition-colors border border-dashed border-zinc-700 hover:border-zinc-600 hover:bg-zinc-800 flex items-center justify-between gap-1"
+                                disabled={sending}
                             >
                                 <PlusIcon className="w-4 h-4" />
                                 Project
                             </button>
                             <button
                                 type="button"
+                                onClick={handleSendMessage}
                                 className={cn(
-                                    "px-1.5 py-1.5 rounded-lg text-sm transition-colors border hover:bg-zinc-800 flex items-center justify-between gap-1",
-                                    value.trim()
-                                        ? "bg-white text-black"
-                                        : "text-zinc-400"
+                                    "px-1.5 py-1.5 rounded-lg text-sm transition-colors border hover:bg-zinc-800 flex items-center justify-between gap-1 cursor-pointer",
+                                    value.trim() && !sending
+                                        ? "bg-blue-500 text-white border-blue-600"
+                                        : "text-zinc-400 border-transparent"
                                 )}
+                                disabled={!value.trim() || sending}
                             >
                                 <ArrowUpIcon className="w-4 h-4" />
                                 <span className="sr-only">Send</span>
@@ -102,27 +213,7 @@ export function VercelV0Chat() {
                         </div>
                     </div>
                 </div>
-
-                <div className="flex items-center justify-center gap-3 mt-4">
-                    <ActionButton icon={<ImageIcon className="w-4 h-4" />} label="Clone a Screenshot" />
-                    <ActionButton icon={<FileUp className="w-4 h-4" />} label="Upload a Project" />
-                    <ActionButton icon={<MonitorIcon className="w-4 h-4" />} label="Landing Page" />
-                    <ActionButton icon={<CircleUserRound className="w-4 h-4" />} label="Sign Up Form" />
-                </div>
             </div>
         </div>
-    );
-}
-
-function ActionButton({ icon, label }) {
-    return (
-        <button
-            type="button"
-            className="flex items-center gap-2 px-4 py-2 rounded-full border transition-colors"
-            style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", color: "var(--text-secondary)" }}
-        >
-            {icon}
-            <span className="text-xs">{label}</span>
-        </button>
     );
 }

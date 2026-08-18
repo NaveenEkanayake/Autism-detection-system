@@ -125,8 +125,8 @@ function DiagnosticMockup({ mockupRef, metricLabel, cardHeading, cardDescription
         </p>
 
         <div className="flex items-center gap-4 mt-6 justify-center lg:justify-start">
-          <FlowButton text="Get Started" onClick={() => navigate("/dashboard")} />
-          <FlowButton text="Login" onClick={() => navigate("/dashboard")} />
+          <FlowButton text="Get Started" onClick={() => setAuthMode("signup")} />
+          <FlowButton text="Login" onClick={() => setAuthMode("login")} />
         </div>
       </div>
 
