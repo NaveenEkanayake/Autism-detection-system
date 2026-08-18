@@ -27,6 +27,13 @@ export function PatientsProvider({ children }) {
   }, [activePatient]);
 
   const refreshPatients = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setPatients([]);
+      setActivePatient(null);
+      setLoading(false);
+      return [];
+    }
     try {
       const data = await api("/patients");
       const filtered = (data || []).filter(

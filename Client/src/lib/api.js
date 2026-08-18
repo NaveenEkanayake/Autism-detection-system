@@ -51,7 +51,7 @@ export async function api(path, options = {}) {
       }
       console.error(`[API Failure] ${fetchOptions.method} ${url} -> Status ${resp.status}: ${errMsg}`);
       
-      if (resp.status === 401) {
+      if (resp.status === 401 && localStorage.getItem("token")) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("activePatient");
