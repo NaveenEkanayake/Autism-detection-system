@@ -111,22 +111,30 @@ function RiskDonutChart({ patient, latestSdq, latestVision, loading }) {
   let riskColor = "#6b7280"; // Neutral gray
 
   if (patient && !loading) {
-    const hasSdq = latestSdq && latestSdq.scores && typeof latestSdq.scores.total === "number";
-    const hasVision = latestVision && typeof latestVision.riskScore === "number";
+    const hasSdq = latestSdq && latestSdq.scores && latestSdq.scores.total !== undefined && latestSdq.scores.total !== null;
+    const hasVision = latestVision && latestVision.riskScore !== undefined && latestVision.riskScore !== null;
+
+    console.log("RiskDonutChart Data Checking:", { latestSdq, latestVision, hasSdq, hasVision });
 
     let totalScore = 0;
     let counts = 0;
 
     if (hasSdq) {
-      // Normalizes 0-40 SDQ score to 0-100 scale
-      totalScore += latestSdq.scores.total * 2.5;
-      counts += 1;
-      hasData = true;
+      const val = parseFloat(latestSdq.scores.total);
+      if (!isNaN(val)) {
+        // Normalizes 0-40 SDQ score to 0-100 scale
+        totalScore += val * 2.5;
+        counts += 1;
+        hasData = true;
+      }
     }
     if (hasVision) {
-      totalScore += latestVision.riskScore;
-      counts += 1;
-      hasData = true;
+      const val = parseFloat(latestVision.riskScore);
+      if (!isNaN(val)) {
+        totalScore += val;
+        counts += 1;
+        hasData = true;
+      }
     }
 
     if (hasData && counts > 0) {

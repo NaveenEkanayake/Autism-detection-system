@@ -41,6 +41,10 @@ export function PatientsProvider({ children }) {
       return filtered;
     } catch (err) {
       console.error("Failed to fetch patients:", err);
+      if (err.message.includes("Authentication") || err.message.includes("401") || !localStorage.getItem("token")) {
+        setPatients([]);
+        setActivePatient(null);
+      }
       return [];
     } finally {
       setLoading(false);
@@ -89,6 +93,18 @@ export function PatientsProvider({ children }) {
         type: "success",
       });
     } catch (err) {
+      if (err.message.includes("not found") || err.message.includes("404")) {
+        setPatients((prev) => prev.filter((p) => p.id !== id));
+        if (activePatient?.id === id) {
+          setActivePatient(null);
+        }
+        showToast({
+          title: "Child Removed",
+          description: "Stale child profile cleared from local state.",
+          type: "success",
+        });
+        return;
+      }
       showToast({
         title: "Failed to Remove Child",
         description: err.message,

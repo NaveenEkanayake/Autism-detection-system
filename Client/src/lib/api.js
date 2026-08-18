@@ -50,6 +50,15 @@ export async function api(path, options = {}) {
         errMsg = text || errMsg;
       }
       console.error(`[API Failure] ${fetchOptions.method} ${url} -> Status ${resp.status}: ${errMsg}`);
+      
+      if (resp.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("activePatient");
+        localStorage.removeItem("patients");
+        window.location.reload();
+      }
+      
       throw new Error(errMsg);
     }
     
