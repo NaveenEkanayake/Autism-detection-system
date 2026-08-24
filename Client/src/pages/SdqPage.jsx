@@ -3,7 +3,6 @@ import { gsap } from "gsap";
 import { ChevronLeft, ChevronRight, Send, RefreshCw, Trophy, AlertTriangle } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
 import PageWrapper from "../components/Layout/PageWrapper";
-import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
 
 const SDQ_QUESTIONS = [
@@ -109,14 +108,18 @@ function SdqPage() {
     setSaving(true);
     try {
       const calculatedScores = calculateScores(answers);
-      await api("/sdq", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: activePatient.id,
-          responses: answers,
-          scores: calculatedScores,
-        }),
-      });
+      
+      const sdqList = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
+      const newSdq = {
+        id: `sdq-${Date.now()}`,
+        patientId: activePatient.id,
+        responses: answers,
+        scores: calculatedScores,
+        createdAt: new Date().toISOString()
+      };
+      sdqList.unshift(newSdq);
+      localStorage.setItem(`sdq_${activePatient.id}`, JSON.stringify(sdqList));
+
       setScores(calculatedScores);
       setSubmitted(true);
       showToast({

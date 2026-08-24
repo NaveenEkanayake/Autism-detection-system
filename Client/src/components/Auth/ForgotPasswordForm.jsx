@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Mail, KeyRound, ArrowLeft, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import GradientButton from "../ui/GradientButton";
 import { showToast } from "../ui/toast";
-import { API } from "../../lib/api";
+import { api } from "../../lib/api";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function validateEmail(email) {
@@ -70,13 +70,14 @@ function ForgotPasswordForm({ onBackToLogin }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/auth/forgot/send-otp`, {
+      const data = await api("/auth/forgot/send-otp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      // In development, the OTP is returned in the response for convenience
+      if (data.devOtp) {
+        console.log("DEV ONLY - Received OTP:", data.devOtp);
+      }
       showToast({ title: "OTP Sent!", description: "Check your email for the verification code.", type: "success" });
       setStep(2);
     } catch (err) {
@@ -97,13 +98,10 @@ function ForgotPasswordForm({ onBackToLogin }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/auth/forgot/verify-otp`, {
+      const data = await api("/auth/forgot/verify-otp", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: form.email, otp: form.otp }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       setResetToken(data.resetToken);
       showToast({ title: "Verified!", description: "Now set your new password.", type: "success" });
       setStep(3);
@@ -125,13 +123,10 @@ function ForgotPasswordForm({ onBackToLogin }) {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API}/auth/forgot/reset`, {
+      await api("/auth/forgot/reset", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: form.email, resetToken, newPassword: form.newPassword }),
+        body: JSON.stringify({ email: form.email, reset_token: resetToken, new_password: form.newPassword }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       showToast({ title: "Password Reset!", description: "You can now log in with your new password.", type: "success" });
       setTimeout(() => onBackToLogin?.(), 1500);
     } catch (err) {

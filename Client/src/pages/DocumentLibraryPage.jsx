@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
-import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
 import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { collection, addDoc } from "firebase/firestore";
@@ -37,22 +36,22 @@ function DocumentLibraryPage() {
   const containerRef = useRef(null);
   const docsRef = useRef(null);
 
-  // Fetch documents from backend
+  // Fetch documents from localStorage
   useEffect(() => {
     if (!activePatient?.id) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    api(`/documents/${activePatient.id}`)
-      .then((data) => {
-        setDocuments(data || []);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch documents:", err);
-        setDocuments([]);
-      })
-      .finally(() => setLoading(false));
+    try {
+      const data = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+      setDocuments(data || []);
+    } catch (err) {
+      console.error("Failed to fetch documents:", err);
+      setDocuments([]);
+    } finally {
+      setLoading(false);
+    }
   }, [activePatient?.id]);
 
   useEffect(() => {
@@ -88,34 +87,48 @@ function DocumentLibraryPage() {
           console.warn("[Storage] Firebase Storage failed, using local object URL fallback:", error.message);
           const localUrl = URL.createObjectURL(file);
           const docData = {
+            id: `doc-${Date.now()}`,
             patientId: activePatient.id,
             parentUid: auth.currentUser?.uid || "mock-uid",
             name: file.name,
             type: file.type || "other",
             fileUrl: localUrl,
             size: file.size,
+            size_bytes: file.size,
             createdAt: new Date().toISOString(),
           };
-          api("/documents", {
-            method: "POST",
-            body: JSON.stringify(docData)
-          }).then(resolve).catch(reject);
+          try {
+            const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+            docs.unshift(docData);
+            localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
+            resolve(docData);
+          } catch (err) {
+            reject(err);
+          }
         },
         async () => {
           try {
             const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-            // Save metadata directly to Firestore
+            // Save metadata directly to Firestore and localStorage
             const docData = {
+              id: `doc-${Date.now()}`,
               patientId: activePatient.id,
               parentUid: auth.currentUser?.uid || "",
               name: file.name,
               type: file.type || "other",
               fileUrl: downloadUrl,
               size: file.size,
+              size_bytes: file.size,
               createdAt: new Date().toISOString(),
             };
             const firestoreRef = await addDoc(collection(db, "documents"), docData);
-            resolve({ id: firestoreRef.id, ...docData });
+            const docWithId = { ...docData, id: firestoreRef.id };
+            
+            const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+            docs.unshift(docWithId);
+            localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
+            
+            resolve(docWithId);
           } catch (err) {
             reject(err);
           }
@@ -155,7 +168,12 @@ function DocumentLibraryPage() {
 
   const handleDelete = async (id) => {
     try {
-      await api(`/documents/${id}`, { method: "DELETE" });
+      if (activePatient?.id) {
+        const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+        const filteredDocs = docs.filter((d) => d.id !== id);
+        localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(filteredDocs));
+      }
+
       const el = document.querySelector(`[data-doc-id="${id}"]`);
       if (el) {
         gsap.to(el, {
@@ -192,13 +210,11 @@ function DocumentLibraryPage() {
 
     setGeneratingPdf(true);
     try {
-      // Gather child details and clinical notes directly from Firestore
-      const [sdqData, milestonesData, growthData, sleepData] = await Promise.all([
-        api(`/sdq/${activePatient.id}`).catch(() => []),
-        api(`/health/milestones/${activePatient.id}`).catch(() => []),
-        api(`/health/growth/${activePatient.id}`).catch(() => []),
-        api(`/health/sleep/${activePatient.id}`).catch(() => []),
-      ]);
+      // Gather child details and clinical notes directly from localStorage
+      const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
+      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+      const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+      const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
 
       const doc = new jsPDF();
       

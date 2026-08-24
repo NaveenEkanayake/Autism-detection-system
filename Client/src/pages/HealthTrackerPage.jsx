@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
 import { ArrowLeft, Activity, TrendingUp, Moon, X } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
-import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
 import TabBar from "../components/Health/TabBar";
 import MilestoneSection from "../components/Health/MilestoneSection";
@@ -28,32 +27,30 @@ function HealthTrackerPage() {
   const [sleepLogs, setSleepLogs] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
 
-  // Fetch health data from backend
+  // Fetch health data from localStorage
   useEffect(() => {
     if (!activePatient?.id) {
       setDataLoading(false);
       return;
     }
     setDataLoading(true);
-    Promise.all([
-      api(`/health/milestones/${activePatient.id}`).catch(() => []),
-      api(`/health/growth/${activePatient.id}`).catch(() => []),
-      api(`/health/sleep/${activePatient.id}`).catch(() => []),
-    ])
-      .then(([milestonesData, growthData, sleepData]) => {
-        // Convert milestones array to object for compatibility
-        const milestonesObj = {};
-        (milestonesData || []).forEach((m) => {
-          milestonesObj[m.id] = { completed: true, recorded_at: m.date };
-        });
-        setMilestones(milestonesObj);
-        setGrowthLogs(growthData || []);
-        setSleepLogs(sleepData || []);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch health data:", err);
-      })
-      .finally(() => setDataLoading(false));
+    try {
+      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+      const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+      const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+
+      const milestonesObj = {};
+      milestonesData.forEach((m) => {
+        milestonesObj[m.id || m.key] = { completed: true, recorded_at: m.date };
+      });
+      setMilestones(milestonesObj);
+      setGrowthLogs(growthData || []);
+      setSleepLogs(sleepData || []);
+    } catch (err) {
+      console.error("Failed to load health data:", err);
+    } finally {
+      setDataLoading(false);
+    }
   }, [activePatient?.id]);
   const [showGrowthForm, setShowGrowthForm] = useState(false);
   const [showSleepForm, setShowSleepForm] = useState(false);
@@ -82,17 +79,24 @@ function HealthTrackerPage() {
     const now = new Date().toISOString();
     const isCompleted = milestones[m.key]?.completed;
 
-    if (!isCompleted && activePatient?.id) {
+    if (activePatient?.id) {
       try {
-        await api("/health/milestones", {
-          method: "POST",
-          body: JSON.stringify({
-            patientId: activePatient.id,
+        const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+        if (!isCompleted) {
+          milestonesData.push({
+            id: m.key,
+            key: m.key,
             title: m.label || m.key,
             category: m.category || "general",
             date: now,
-          }),
-        });
+          });
+        } else {
+          const index = milestonesData.findIndex((item) => (item.id || item.key) === m.key);
+          if (index !== -1) {
+            milestonesData.splice(index, 1);
+          }
+        }
+        localStorage.setItem(`milestones_${activePatient.id}`, JSON.stringify(milestonesData));
       } catch (err) {
         console.error("Failed to save milestone:", err);
         showToast({ title: "Failed to save milestone", type: "error" });
@@ -111,16 +115,18 @@ function HealthTrackerPage() {
     if (!activePatient?.id) return;
     setSaving(true);
     try {
-      const newRecord = await api("/health/growth", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: activePatient.id,
-          date: new Date().toISOString(),
-          weight: parseFloat(growthForm.weight_kg) || null,
-          height: parseFloat(growthForm.height_cm) || null,
-          headCircumference: parseFloat(growthForm.head_cm) || null,
-        }),
-      });
+      const newRecord = {
+        id: `growth-${Date.now()}`,
+        patientId: activePatient.id,
+        date: new Date().toISOString(),
+        weight: parseFloat(growthForm.weight_kg) || null,
+        height: parseFloat(growthForm.height_cm) || null,
+        headCircumference: parseFloat(growthForm.head_cm) || null,
+      };
+      const growthLogsData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+      growthLogsData.push(newRecord);
+      localStorage.setItem(`growth_${activePatient.id}`, JSON.stringify(growthLogsData));
+
       setGrowthLogs((prev) => [
         ...prev,
         newRecord,
@@ -141,18 +147,19 @@ function HealthTrackerPage() {
     setSaving(true);
     try {
       const start = new Date(sleepForm.start_time);
-      const end = new Date(sleepForm.end_time);
-      const newRecord = await api("/health/sleep", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: activePatient.id,
-          date: start.toISOString(),
-          bedtime: sleepForm.start_time,
-          wakeTime: sleepForm.end_time,
-          quality: sleepForm.quality,
-          naps: 0,
-        }),
-      });
+      const newRecord = {
+        id: `sleep-${Date.now()}`,
+        patientId: activePatient.id,
+        date: start.toISOString(),
+        bedtime: sleepForm.start_time,
+        wakeTime: sleepForm.end_time,
+        quality: sleepForm.quality,
+        naps: 0,
+      };
+      const sleepLogsData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+      sleepLogsData.unshift(newRecord);
+      localStorage.setItem(`sleep_${activePatient.id}`, JSON.stringify(sleepLogsData));
+
       setSleepLogs((prev) => [newRecord, ...prev]);
       setSleepForm({ start_time: "", end_time: "", quality: "good", notes: "" });
       setShowSleepForm(false);
@@ -172,20 +179,22 @@ function HealthTrackerPage() {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      await api("/health/milestones", {
-        method: "POST",
-        body: JSON.stringify({
-          patientId: activePatient.id,
-          title: milestoneForm.label,
-          category: milestoneForm.category,
-          date: now,
-        }),
+      const key = milestoneForm.label.toLowerCase().replace(/\s+/g, "_");
+
+      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+      milestonesData.push({
+        id: key,
+        key: key,
+        title: milestoneForm.label,
+        category: milestoneForm.category,
+        date: now,
       });
+      localStorage.setItem(`milestones_${activePatient.id}`, JSON.stringify(milestonesData));
 
       // Update local milestones state so it reflects immediately
       setMilestones((prev) => ({
         ...prev,
-        [milestoneForm.label.toLowerCase().replace(/\s+/g, "_")]: {
+        [key]: {
           completed: true,
           recorded_at: now
         }

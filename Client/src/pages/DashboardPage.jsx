@@ -9,7 +9,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { usePatients } from "../hooks/usePatients";
-import { api } from "../lib/api";
 import WelcomeHeader from "../components/Dashboard/WelcomeHeader";
 import StatCard from "../components/Dashboard/StatCard";
 import RecentActivity from "../components/Dashboard/RecentActivity";
@@ -254,30 +253,29 @@ function DashboardPage() {
       return;
     }
     setStatsLoading(true);
-    Promise.all([
-      api(`/sdq/${activePatient.id}`).catch(() => []),
-      api(`/health/milestones/${activePatient.id}`).catch(() => []),
-      api(`/health/growth/${activePatient.id}`).catch(() => []),
-      api(`/documents/${activePatient.id}`).catch(() => []),
-      api(`/health/sleep/${activePatient.id}`).catch(() => []),
-      api(`/vision/${activePatient.id}`).catch(() => []),
-    ])
-      .then(([sdqData, milestonesData, growthData, documentsData, sleepData, visionData]) => {
-        setStats({
-          sdq: (sdqData || []).length,
-          milestones: (milestonesData || []).length,
-          growth: (growthData || []).length,
-          documents: (documentsData || []).length,
-          sleep: (sleepData || []).length,
-          vision: (visionData || []).length,
-        });
-        setLatestSdq(sdqData?.[0] || null);
-        setLatestVision(visionData?.[0] || null);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch dashboard stats:", err);
-      })
-      .finally(() => setStatsLoading(false));
+    try {
+      const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
+      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+      const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+      const documentsData = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+      const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+      const visionData = JSON.parse(localStorage.getItem(`vision_${activePatient.id}`) || "[]");
+
+      setStats({
+        sdq: (sdqData || []).length,
+        milestones: (milestonesData || []).length,
+        growth: (growthData || []).length,
+        documents: (documentsData || []).length,
+        sleep: (sleepData || []).length,
+        vision: (visionData || []).length,
+      });
+      setLatestSdq(sdqData?.[0] || null);
+      setLatestVision(visionData?.[0] || null);
+    } catch (err) {
+      console.error("Failed to load dashboard stats from local storage:", err);
+    } finally {
+      setStatsLoading(false);
+    }
   }, [activePatient?.id]);
 
   const dynamicStats = [

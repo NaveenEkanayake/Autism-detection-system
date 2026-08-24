@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { api } from "../lib/api";
 import { showToast } from "../components/ui/toast";
 
 const PatientsContext = createContext();
@@ -34,29 +33,10 @@ export function PatientsProvider({ children }) {
       setLoading(false);
       return [];
     }
-    try {
-      const data = await api("/patients");
-      const filtered = (data || []).filter(
-        (p) => p.name?.toLowerCase().trim() !== "sumane"
-      );
-      setPatients(filtered);
-      if (filtered.length === 0) {
-        setActivePatient(null);
-      } else if (!activePatient || !filtered.some((p) => p.id === activePatient.id)) {
-        setActivePatient(filtered[0]);
-      }
-      return filtered;
-    } catch (err) {
-      console.error("Failed to fetch patients:", err);
-      if (err.message.includes("Authentication") || err.message.includes("401") || !localStorage.getItem("token")) {
-        setPatients([]);
-        setActivePatient(null);
-      }
-      return [];
-    } finally {
-      setLoading(false);
-    }
-  }, [activePatient]);
+    // Retrieve from state (which loaded from localStorage)
+    setLoading(false);
+    return patients;
+  }, [patients]);
 
   useEffect(() => {
     refreshPatients();
@@ -64,10 +44,11 @@ export function PatientsProvider({ children }) {
 
   const addChild = async (childData) => {
     try {
-      const newPatient = await api("/patients", {
-        method: "POST",
-        body: JSON.stringify(childData),
-      });
+      // Simulate creating patient locally
+      const newPatient = {
+        ...childData,
+        id: childData.id || `child-${Date.now()}`
+      };
       setPatients((prev) => [...prev, newPatient]);
       setActivePatient(newPatient);
       setAddChildOpen(false);
@@ -89,7 +70,14 @@ export function PatientsProvider({ children }) {
 
   const deleteChild = async (id) => {
     try {
-      await api(`/patients/${id}`, { method: "DELETE" });
+      // Delete child data from localStorage completely
+      localStorage.removeItem(`sdq_${id}`);
+      localStorage.removeItem(`milestones_${id}`);
+      localStorage.removeItem(`growth_${id}`);
+      localStorage.removeItem(`sleep_${id}`);
+      localStorage.removeItem(`documents_${id}`);
+      localStorage.removeItem(`vision_${id}`);
+
       setPatients((prev) => prev.filter((p) => p.id !== id));
       if (activePatient?.id === id) {
         setActivePatient(null);
@@ -100,18 +88,6 @@ export function PatientsProvider({ children }) {
         type: "success",
       });
     } catch (err) {
-      if (err.message.includes("not found") || err.message.includes("404")) {
-        setPatients((prev) => prev.filter((p) => p.id !== id));
-        if (activePatient?.id === id) {
-          setActivePatient(null);
-        }
-        showToast({
-          title: "Child Removed",
-          description: "Stale child profile cleared from local state.",
-          type: "success",
-        });
-        return;
-      }
       showToast({
         title: "Failed to Remove Child",
         description: err.message,

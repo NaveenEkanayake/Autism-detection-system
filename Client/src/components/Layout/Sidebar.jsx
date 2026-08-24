@@ -8,7 +8,6 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { usePatients } from "../../hooks/usePatients";
 import { useTheme } from "../../hooks/useTheme";
-import { api } from "../../lib/api";
 import SkyToggle from "../ui/SkyToggle";
 
 const NAV_ITEMS = [
@@ -48,24 +47,22 @@ export default function Sidebar({ open, onClose }) {
       setStats({ sdq: 0, milestones: 0, growth: 0, sleep: 0 });
       return;
     }
-    Promise.all([
-      api(`/sdq/${activePatient.id}`).catch(() => []),
-      api(`/health/milestones/${activePatient.id}`).catch(() => []),
-      api(`/health/growth/${activePatient.id}`).catch(() => []),
-      api(`/health/sleep/${activePatient.id}`).catch(() => []),
-    ])
-      .then(([sdqData, milestonesData, growthData, sleepData]) => {
-        setStats({
-          sdq: (sdqData || []).length,
-          milestones: (milestonesData || []).length,
-          growth: (growthData || []).length,
-          sleep: (sleepData || []).length,
-        });
-      })
-      .catch((err) => {
-        console.error("Failed to fetch sidebar stats:", err);
+    try {
+      const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
+      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+      const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+      const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+
+      setStats({
+        sdq: (sdqData || []).length,
+        milestones: (milestonesData || []).length,
+        growth: (growthData || []).length,
+        sleep: (sleepData || []).length,
       });
-  }, [activePatient?.id]);
+    } catch (err) {
+      console.error("Failed to fetch sidebar stats:", err);
+    }
+  }, [activePatient?.id, patients]);
 
   const dynamicQuickStats = [
     { label: "SDQ", value: stats.sdq, color: "text-blue-400", icon: Brain },

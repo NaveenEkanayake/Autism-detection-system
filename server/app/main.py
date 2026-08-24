@@ -1,44 +1,47 @@
-"""FastAPI application entry point for the AuraTrack backend."""
-from contextlib import asynccontextmanager
-
+"""Main FastAPI application configuration and startup handlers."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from .config import settings
-from .db import init_db
-from .routers import ai, auth, children, data, vision
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    init_db()
-    yield
-
+from .routers import auth
+from .db import ping_db
 
 app = FastAPI(
-    title="AuraTrack API",
-    description="Backend for the AuraTrack autism screening platform.",
-    version="1.0.0",
-    lifespan=lifespan,
+    title="Autism Detection Platform API",
+    description="Backend API for autism screening, user accounts, and AI integration.",
+    version="1.0.0"
 )
+
+# Configure CORS Middleware
+origins = settings.CORS_ORIGINS
+# FastAPI will raise an error if allow_origins=['*'] is set with allow_credentials=True.
+# We check if wildcard is present and toggle allow_credentials accordingly.
+allow_creds = False if "*" in origins or (isinstance(origins, str) and origins == "*") else True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=allow_creds,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-API_PREFIX = "/api"
+# Startup event
+@app.on_event("startup")
+async def startup_db_client():
+    is_connected = await ping_db()
+    if is_connected:
+        print("[Startup] Connected to MongoDB Atlas database successfully.")
+    else:
+        print("[Startup] WARNING: Could not connect to MongoDB Atlas database.")
 
-app.include_router(auth.router, prefix=API_PREFIX)
-app.include_router(children.router, prefix=API_PREFIX)
-app.include_router(data.router, prefix=API_PREFIX)
-app.include_router(vision.router, prefix=API_PREFIX)
-app.include_router(ai.router, prefix=API_PREFIX)
+# Root Route
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "message": "Autism Detection Platform Backend API is running.",
+        "version": "1.0.0"
+    }
 
-
-@app.get("/api/health")
-def health():
-    return {"status": "ok", "service": "aura-track-api"}
+# Mount Routers under /api prefix
+app.include_router(auth.router, prefix="/api")

@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
       return data;
+    } catch (err) {
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -33,6 +35,10 @@ export function AuthProvider({ children }) {
         method: "POST",
         body: JSON.stringify({ email, password, name }),
       });
+      // Register usually auto-logs-in, so save token/user
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      setUser(data.user);
       return data;
     } finally {
       setLoading(false);

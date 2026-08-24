@@ -1,0 +1,33 @@
+# Dependency directories
+node_modules/
+Client/node_modules/
+dist/
+Client/dist/
+
+# Environment variables (contains secrets)
+.env
+server/.env
+
+# Python local environments and cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.venv/
+.env/
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+manifest
+spec

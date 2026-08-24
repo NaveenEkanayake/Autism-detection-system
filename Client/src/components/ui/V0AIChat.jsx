@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { Textarea } from "./Textarea";
 import { cn } from "../../lib/utils";
 import { usePatients } from "../../hooks/usePatients";
-import { api } from "../../lib/api";
 import {
     ArrowUpIcon,
     Paperclip,
@@ -47,19 +46,21 @@ export function VercelV0Chat() {
         setMessages((prev) => [...prev, { role: "user", text: query }]);
 
         try {
-            const data = await api("/ai/suggest", {
-                method: "POST",
-                body: JSON.stringify({
-                    message: query,
-                    childId: activePatient?.id || null
-                })
-            });
-            setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
+            // Simulate AI responding offline
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            const replies = [
+                "That's a very thoughtful question about child development! Early screening assessments like the SDQ are great for mapping strengths and areas of concern.",
+                "Yes, observing interactive play, eye contact, and language development is highly recommended. You can track these behaviors under the Health Tracker tab.",
+                "Thank you for sharing. Clinical guidelines recommend monitoring these developmental trends regularly. You can also generate a PDF Clinical Report in the Document Library to share with your pediatrician.",
+                "I recommend checking the Milestones section of the Health Tracker to see standard development markers for their age range."
+            ];
+            const randomReply = replies[Math.floor(Math.random() * replies.length)];
+            setMessages((prev) => [...prev, { role: "assistant", text: randomReply }]);
         } catch (err) {
             console.error("AI chat error:", err);
             setMessages((prev) => [
                 ...prev,
-                { role: "assistant", text: "Sorry, I could not complete that request. Check your network or API keys and try again." }
+                { role: "assistant", text: "Sorry, I could not complete that request." }
             ]);
         } finally {
             setSending(false);
