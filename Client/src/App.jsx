@@ -8,6 +8,8 @@ import EventManagementPage from "./pages/EventManagementPage";
 import VisionAnalysisPage from "./pages/VisionAnalysisPage";
 import VisionPage from "./pages/VisionPage";
 import AIChatPage from "./pages/AIChatPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import ChildProfilePage from "./pages/ChildProfilePage";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 import { PatientsProvider } from "./hooks/usePatients";
 import ToastProvider from "./components/ui/toast";
@@ -31,6 +33,8 @@ function App() {
               <Route path="/health" element={<HealthTrackerPage />} />
               <Route path="/documents" element={<DocumentLibraryPage />} />
               <Route path="/events" element={<EventManagementPage />} />
+              <Route path="/profile" element={<UserProfilePage />} />
+              <Route path="/child/:childId" element={<ChildProfilePage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

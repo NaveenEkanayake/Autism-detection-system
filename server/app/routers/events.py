@@ -1,8 +1,7 @@
-"""Events CRUD blueprint with Firestore persistence and email reminder scheduling."""
+"""Events CRUD blueprint with Firestore persistence and instant email notifications."""
 import logging
 import threading
-import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 from ..db import db
 from ..security import decode_access_token
@@ -10,9 +9,6 @@ from ..email_service import send_event_reminder_email
 
 logger = logging.getLogger("app.events")
 events_blueprint = Blueprint("events", __name__)
-
-# In-memory store for scheduled reminders: { event_id: threading.Timer }
-_scheduled_reminders = {}
 
 
 def get_current_user_id() -> str:
@@ -24,93 +20,79 @@ def get_current_user_id() -> str:
     return payload.get("sub") if payload else None
 
 
-def _schedule_email_reminder(event_doc: dict):
-    """
-    Schedule an email reminder for an event.
-    The reminder fires reminder_minutes before the event start time.
-    """
+def _get_user_email_sync(user_id: str) -> str:
+    """Synchronously look up user email from Firestore using httpx."""
+    import httpx
+    from ..config import settings
+    print(f"[Events] Looking up email for user_id={user_id}")
+    try:
+        url = f"https://firestore.googleapis.com/v1/projects/{settings.FIREBASE_PROJECT_ID}/databases/(default)/documents:runQuery?key={settings.FIREBASE_API_KEY}"
+        payload = {
+            "structuredQuery": {
+                "from": [{"collectionId": "users"}],
+                "where": {
+                    "fieldFilter": {
+                        "field": {"fieldPath": "id"},
+                        "op": "EQUAL",
+                        "value": {"stringValue": user_id}
+                    }
+                },
+                "limit": 1
+            }
+        }
+        with httpx.Client(timeout=10) as client:
+            resp = client.post(url, json=payload)
+            if resp.status_code == 200:
+                results = resp.json()
+                for r in results:
+                    if "document" in r:
+                        fields = r["document"].get("fields", {})
+                        email_val = fields.get("email", {})
+                        found_email = email_val.get("stringValue", "")
+                        print(f"[Events] Found email: {found_email}")
+                        return found_email
+            else:
+                print(f"[Events] Firestore query failed with status {resp.status_code}")
+    except Exception as e:
+        print(f"[Events] Failed to look up user email: {type(e).__name__}: {e}")
+    return ""
+
+
+def _send_event_email(event_doc: dict):
+    """Send event notification email. Runs in a background thread."""
+    print(f"[Events] Sending email for '{event_doc.get('title')}'...")
     try:
         user_id = event_doc.get("user_id")
-        start_str = event_doc.get("start_datetime") or event_doc.get("startDate")
-        start_time_str = event_doc.get("start_time", "00:00")
-        reminder_minutes = int(event_doc.get("reminder_minutes", 60))
-
-        if not start_str or not user_id:
+        to_email = _get_user_email_sync(user_id)
+        if not to_email:
+            print(f"[Events] WARNING: User {user_id} has no email — cannot send")
             return
 
-        # Parse the start datetime
-        if "T" in start_str:
-            # Already ISO format
-            event_start = datetime.fromisoformat(start_str.replace("Z", "+00:00"))
+        success = send_event_reminder_email(
+            to_email=to_email,
+            event_title=event_doc.get("title", "Untitled Event"),
+            event_start=f"{event_doc.get('startDate', '')} {event_doc.get('startTime', '')}",
+            event_location=event_doc.get("location", ""),
+            event_description=event_doc.get("description", ""),
+        )
+        if success:
+            # Mark as sent in Firestore
+            try:
+                import httpx
+                from ..config import settings
+                event_id = event_doc.get("id")
+                url = f"https://firestore.googleapis.com/v1/projects/{settings.FIREBASE_PROJECT_ID}/databases/(default)/documents/events/{event_id}?updateMask.fieldPaths=reminder_sent&key={settings.FIREBASE_API_KEY}"
+                payload = {"fields": {"reminder_sent": {"booleanValue": True}}}
+                with httpx.Client(timeout=10) as client:
+                    client.patch(url, json=payload)
+            except Exception as e:
+                print(f"[Events] Failed to mark reminder_sent: {e}")
+            print(f"[Events] Email sent to {to_email} for '{event_doc.get('title')}'")
         else:
-            # Date only — combine with start_time
-            event_start = datetime.fromisoformat(f"{start_str}T{start_time_str}:00")
-
-        # Calculate when to send the reminder
-        reminder_time = event_start - timedelta(minutes=reminder_minutes)
-        now = datetime.now(timezone.utc)
-
-        if reminder_time <= now:
-            # Event is too soon or already past — send immediately
-            logger.info(f"[Events] Event '{event_doc.get('title')}' is soon — sending reminder now")
-            _send_reminder_for_event(event_doc)
-            return
-
-        delay_seconds = (reminder_time - now).total_seconds()
-        event_id = event_doc.get("id", "unknown")
-
-        # Cancel existing reminder if re-scheduling
-        if event_id in _scheduled_reminders:
-            _scheduled_reminders[event_id].cancel()
-
-        timer = threading.Timer(delay_seconds, _send_reminder_for_event, args=[event_doc])
-        timer.daemon = True
-        timer.start()
-        _scheduled_reminders[event_id] = timer
-        logger.info(f"[Events] Scheduled reminder for '{event_doc.get('title')}' in {delay_seconds:.0f}s (at {reminder_time.isoformat()})")
+            print(f"[Events] Failed to send email to {to_email}")
 
     except Exception as e:
-        logger.error(f"[Events] Failed to schedule reminder: {e}")
-
-
-def _send_reminder_for_event(event_doc: dict):
-    """Send the email reminder for a given event document."""
-    try:
-        user_id = event_doc.get("user_id")
-        # Look up user email from Firestore
-        import asyncio
-
-        async def _lookup_and_send():
-            user = await db.users.find_one({"id": user_id})
-            if not user:
-                logger.warning(f"[Events] User {user_id} not found — cannot send reminder")
-                return
-            to_email = user.get("email")
-            if not to_email:
-                logger.warning(f"[Events] User {user_id} has no email — cannot send reminder")
-                return
-
-            success = send_event_reminder_email(
-                to_email=to_email,
-                event_title=event_doc.get("title", "Untitled Event"),
-                event_start=f"{event_doc.get('startDate', '')} {event_doc.get('startTime', '')}",
-                event_location=event_doc.get("location", ""),
-                event_description=event_doc.get("description", ""),
-                reminder_minutes=int(event_doc.get("reminder_minutes", 60)),
-            )
-            if success:
-                # Mark reminder as sent in Firestore
-                try:
-                    await db.events.update_one(
-                        {"id": event_doc.get("id")},
-                        {"$set": {"reminder_sent": True}}
-                    )
-                except Exception:
-                    pass
-
-        asyncio.get_event_loop().run_until_complete(_lookup_and_send())
-    except Exception as e:
-        logger.error(f"[Events] Failed to send reminder: {e}")
+        print(f"[Events] Failed to send email: {type(e).__name__}: {e}")
 
 
 # ─── CRUD Routes ──────────────────────────────────────────────────
@@ -124,7 +106,6 @@ async def list_events():
 
     try:
         events = await db.events.find({"user_id": user_id})
-        # Sort by start date ascending
         events.sort(key=lambda e: e.get("startDate", "") + " " + e.get("startTime", "00:00"))
         return jsonify(events), 200
     except Exception as e:
@@ -134,7 +115,7 @@ async def list_events():
 
 @events_blueprint.route("/events", methods=["POST"])
 async def create_event():
-    """Create a new event and schedule email reminder."""
+    """Create a new event and send email notification immediately."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
@@ -161,15 +142,15 @@ async def create_event():
         "endTime": body.get("endTime") or body.get("end_time") or start_time,
         "location": body.get("location", ""),
         "description": body.get("description", ""),
-        "reminder_minutes": int(body.get("reminder_minutes") or body.get("reminderMinutes") or 60),
         "reminder_sent": False,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
 
     try:
         await db.events.insert_one(event_data)
-        # Schedule email reminder (1 hour before by default)
-        _schedule_email_reminder(event_data)
+        # Send email immediately in background thread
+        threading.Thread(target=_send_event_email, args=(event_data,), daemon=True).start()
+        print(f"[Events] Created event '{title}' — sending email now")
         return jsonify(event_data), 201
     except Exception as e:
         logger.error(f"Error creating event: {e}")
@@ -178,7 +159,7 @@ async def create_event():
 
 @events_blueprint.route("/events/<event_id>", methods=["PATCH"])
 async def update_event(event_id):
-    """Update an event and reschedule its email reminder."""
+    """Update an event and send email notification immediately."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
@@ -191,24 +172,20 @@ async def update_event(event_id):
 
     body = request.get_json() or {}
     update_fields = {}
-    for key in ["title", "category", "startDate", "startTime", "endDate", "endTime", "location", "description", "reminder_minutes", "reminderMinutes"]:
+    for key in ["title", "category", "startDate", "startTime", "endDate", "endTime", "location", "description"]:
         if key in body:
-            # Normalize field names
-            if key == "reminderMinutes":
-                update_fields["reminder_minutes"] = int(body[key])
-            else:
-                update_fields[key] = body[key]
+            update_fields[key] = body[key]
 
     if not update_fields:
         return jsonify(event), 200
 
-    update_fields["reminder_sent"] = False  # Reset so reminder fires again
+    update_fields["reminder_sent"] = False
 
     try:
         await db.events.update_one({"id": event_id}, {"$set": update_fields})
-        # Reschedule reminder with updated data
         updated_event = {**event, **update_fields, "id": event_id}
-        _schedule_email_reminder(updated_event)
+        # Send email immediately in background thread
+        threading.Thread(target=_send_event_email, args=(updated_event,), daemon=True).start()
         return jsonify(updated_event), 200
     except Exception as e:
         logger.error(f"Error updating event: {e}")
@@ -217,7 +194,7 @@ async def update_event(event_id):
 
 @events_blueprint.route("/events/<event_id>", methods=["DELETE"])
 async def delete_event(event_id):
-    """Delete an event and cancel its scheduled reminder."""
+    """Delete an event."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
@@ -229,32 +206,8 @@ async def delete_event(event_id):
         return jsonify({"detail": "Permission denied."}), 403
 
     try:
-        # Cancel scheduled reminder
-        if event_id in _scheduled_reminders:
-            _scheduled_reminders[event_id].cancel()
-            del _scheduled_reminders[event_id]
-
         await db.events.delete_one({"id": event_id})
         return jsonify({"success": True, "message": "Event deleted successfully."}), 200
     except Exception as e:
         logger.error(f"Error deleting event: {e}")
         return jsonify({"detail": "Failed to delete event."}), 500
-
-
-def reschedule_all_reminders():
-    """Called on server startup to reschedule all pending event reminders."""
-    async def _reschedule():
-        try:
-            # We can't easily list ALL events without a user_id filter,
-            # so we rely on individual user event listing.
-            # Reminders will be re-scheduled when events are fetched.
-            logger.info("[Events] Reminder scheduler initialized. Reminders will be scheduled on event creation/update.")
-        except Exception as e:
-            logger.error(f"[Events] Failed to reschedule reminders: {e}")
-
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(_reschedule())
-    except Exception:
-        pass

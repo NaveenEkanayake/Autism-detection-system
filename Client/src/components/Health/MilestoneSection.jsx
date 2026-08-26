@@ -9,7 +9,7 @@ const CATEGORY_COLORS = {
   General: { bg: "rgba(100,116,139,0.15)", text: "#94a3b8", border: "rgba(100,116,139,0.3)" },
 };
 
-export default function MilestoneSection({ milestones, ageMonths, onToggle, milestoneLogs = [], onEdit, onDelete }) {
+export default function MilestoneSection({ milestones, ageMonths, onToggle, milestoneLogs = [], onEdit, onDelete, loading = false }) {
   const [filterCategory, setFilterCategory] = useState("all");
 
   // Use milestoneLogs from backend (not hardcoded list)
@@ -53,7 +53,25 @@ export default function MilestoneSection({ milestones, ageMonths, onToggle, mile
       </div>
 
       {/* Milestones Table */}
-      {filteredLogs.length === 0 ? (
+      {loading ? (
+        <div className="space-y-3 animate-pulse">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="px-5 py-4 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+              <div className="grid grid-cols-12 gap-4 items-center">
+                <div className="col-span-1"><div className="w-6 h-6 rounded-full" style={{ background: "var(--hover-bg)" }} /></div>
+                <div className="col-span-4"><div className="h-4 w-32 rounded-lg" style={{ background: "var(--hover-bg)" }} /></div>
+                <div className="col-span-2"><div className="h-5 w-16 rounded-full" style={{ background: "var(--hover-bg)" }} /></div>
+                <div className="col-span-2"><div className="h-3 w-10 rounded" style={{ background: "var(--hover-bg)" }} /></div>
+                <div className="col-span-2"><div className="h-3 w-20 rounded" style={{ background: "var(--hover-bg)" }} /></div>
+                <div className="col-span-1 flex justify-end gap-1">
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : filteredLogs.length === 0 ? (
         <div className="p-10 text-center rounded-2xl border border-dashed" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <CheckCircle className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
           <p style={{ color: "var(--text-secondary)" }}>

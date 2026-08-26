@@ -199,3 +199,93 @@ async def reset_password():
         {"$set": {"password_hash": hash_password(new_password)}}
     )
     return jsonify({"message": "Password updated successfully. You can now sign in."}), 200
+
+
+@auth_blueprint.route("/auth/profile", methods=["GET"])
+async def get_profile():
+    """Get current user profile."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"detail": "Authentication required."}), 401
+    token = auth_header.split(" ")[1]
+    payload = decode_access_token(token)
+    user_id = payload.get("sub") if payload else None
+    if not user_id:
+        return jsonify({"detail": "Invalid token."}), 401
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return jsonify({"detail": "User not found."}), 404
+
+    return jsonify(_public_user(user)), 200
+
+
+@auth_blueprint.route("/auth/profile", methods=["PATCH"])
+async def update_profile():
+    """Update current user profile (name)."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"detail": "Authentication required."}), 401
+    token = auth_header.split(" ")[1]
+    payload = decode_access_token(token)
+    user_id = payload.get("sub") if payload else None
+    if not user_id:
+        return jsonify({"detail": "Invalid token."}), 401
+
+    body = request.get_json() or {}
+    name = (body.get("name") or "").strip()
+    if not name or len(name) < 2:
+        return jsonify({"detail": "Name must be at least 2 characters long."}), 400
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return jsonify({"detail": "User not found."}), 404
+
+    await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"name": name}}
+    )
+
+    # Return updated user
+    updated_user = {**user, "name": name}
+    return jsonify(_public_user(updated_user)), 200
+
+
+@auth_blueprint.route("/auth/profile", methods=["DELETE"])
+async def delete_profile():
+    """Delete current user account and all associated data."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"detail": "Authentication required."}), 401
+    token = auth_header.split(" ")[1]
+    payload = decode_access_token(token)
+    user_id = payload.get("sub") if payload else None
+    if not user_id:
+        return jsonify({"detail": "Invalid token."}), 401
+
+    user = await db.users.find_one({"id": user_id})
+    if not user:
+        return jsonify({"detail": "User not found."}), 404
+
+    # Delete all associated data
+    try:
+        # Delete children
+        children = await db.patients.find({"parent_id": user_id})
+        for child in children:
+            child_id = child.get("id")
+            # Delete child's SDQ, vision, milestones, growth, sleep, documents, events
+            for col_name in ["sdq_submissions", "vision_analyses", "milestone_logs", "growth_logs", "sleep_logs", "documents", "events"]:
+                try:
+                    items = await getattr(db, col_name).find({"child_id": child_id})
+                    for item in items:
+                        await getattr(db, col_name).delete_one({"id": item.get("id")})
+                except Exception:
+                    pass
+            await db.patients.delete_one({"id": child_id})
+
+        # Delete user
+        await db.users.delete_one({"id": user_id})
+    except Exception as e:
+        return jsonify({"detail": f"Failed to delete account: {str(e)}"}), 500
+
+    return jsonify({"success": True, "message": "Account deleted successfully."}), 200

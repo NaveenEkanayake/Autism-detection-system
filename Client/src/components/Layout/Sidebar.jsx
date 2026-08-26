@@ -107,18 +107,22 @@ export default function Sidebar({ open, onClose }) {
         </span>
       </div>
 
-      {/* User info */}
-      <div className="px-6 py-4 border-b" style={{ borderColor: "var(--sidebar-border)" }}>
+      {/* User info — clickable to profile */}
+      <button
+        onClick={() => { navigate("/profile"); onClose(); }}
+        className="px-6 py-4 border-b w-full text-left transition-all hover:bg-white/5 cursor-pointer bg-transparent border-0 border-b" style={{ borderColor: "var(--sidebar-border)" }}
+      >
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0 shadow-md">
             {user?.name?.[0]?.toUpperCase() || "U"}
           </div>
-          <div className="overflow-hidden">
+          <div className="overflow-hidden flex-1">
             <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{user?.name || "User"}</p>
             <p className="text-xs truncate" style={{ color: "var(--text-secondary)" }}>{user?.email || ""}</p>
           </div>
+          <Edit2 className="w-3.5 h-3.5 flex-shrink-0" style={{ color: "var(--text-muted)" }} />
         </div>
-      </div>
+      </button>
 
       {/* Children Switcher */}
       <div className="mx-4 mt-4">
@@ -225,6 +229,7 @@ export default function Sidebar({ open, onClose }) {
                           onClick={() => {
                             switchPatient(p);
                             setChildDropdownOpen(false);
+                            navigate(`/child/${p.id}`);
                           }}
                           className={"flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-left border " + (activePatient?.id === p.id ? "border-blue-500/20 text-[var(--text-primary)]" : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-blue-500/20")}
                           style={activePatient?.id === p.id ? { background: "linear-gradient(135deg, rgba(59,147,245,0.2), rgba(20,184,166,0.12))" } : {}}

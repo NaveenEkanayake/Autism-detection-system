@@ -17,13 +17,7 @@ const CATEGORIES = [
   { id: "others", label: "Others", color: "#64748b", bg: "rgba(100, 116, 139, 0.15)" },
 ];
 
-const REMINDER_OPTIONS = [
-  { value: "5", label: "5 minutes before" },
-  { value: "15", label: "15 minutes before" },
-  { value: "30", label: "30 minutes before" },
-  { value: "60", label: "1 hour before" },
-  { value: "1440", label: "1 day before" },
-];
+
 
 export default function EventManagementPage() {
   const navigate = useNavigate();
@@ -49,7 +43,6 @@ export default function EventManagementPage() {
     endTime: "",
     location: "",
     description: "",
-    reminderMinutes: "60",
   });
 
   const containerRef = useRef(null);
@@ -127,7 +120,7 @@ export default function EventManagementPage() {
         endTime: form.endTime || form.startTime,
         location: form.location.trim(),
         description: form.description.trim(),
-        reminder_minutes: parseInt(form.reminderMinutes) || 60,
+        reminder_minutes: 0,
       };
 
       let savedEvent;
@@ -142,8 +135,7 @@ export default function EventManagementPage() {
           method: "POST",
           body: JSON.stringify(eventData),
         });
-        const reminderLabel = REMINDER_OPTIONS.find(o => o.value === String(eventData.reminder_minutes))?.label || "1 hour before";
-        showToast({ title: "Event Logged", description: `"${eventData.title}" has been scheduled. Email reminder: ${reminderLabel}.`, type: "success" });
+        showToast({ title: "Event Logged", description: `"${eventData.title}" has been scheduled. Email notification sent.`, type: "success" });
       }
 
       // Refresh events list from backend
@@ -180,7 +172,6 @@ export default function EventManagementPage() {
         endTime: "",
         location: "",
         description: "",
-        reminderMinutes: "60",
       });
       setShowEventForm(false);
       setEditingEventId(null);
@@ -201,7 +192,7 @@ export default function EventManagementPage() {
       endTime: ev.endTime,
       location: ev.location || "",
       description: ev.description || "",
-      reminderMinutes: String(ev.reminder_minutes || ev.reminderMinutes || 60),
+
     });
     setShowEventForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -247,11 +238,6 @@ export default function EventManagementPage() {
     return eventDateTime < new Date();
   };
 
-  const getReminderLabel = (minutes) => {
-    const option = REMINDER_OPTIONS.find(o => o.value === String(minutes));
-    return option ? option.label : `${minutes} minutes before`;
-  };
-
   return (
     <div ref={containerRef} className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Page Header */}
@@ -278,7 +264,7 @@ export default function EventManagementPage() {
                 endTime: "",
                 location: "",
                 description: "",
-                reminderMinutes: "60",
+
               });
               setShowEventForm(p => !p);
             }}
@@ -294,7 +280,7 @@ export default function EventManagementPage() {
       {showEventForm && (
         <form onSubmit={handleSaveEvent} className="event-content p-6 rounded-2xl border backdrop-blur-sm shadow-xl space-y-4" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-            {editingEventId ? "Edit Event / Reminder" : "Schedule New Event / Reminder"}
+            {editingEventId ? "Edit Event" : "Schedule New Event"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -368,18 +354,7 @@ export default function EventManagementPage() {
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all outline-none"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Email Reminder</label>
-              <select
-                value={form.reminderMinutes}
-                onChange={(e) => setForm({ ...form, reminderMinutes: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-neutral-900 border border-white/10 text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all outline-none"
-              >
-                {REMINDER_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value} className="bg-neutral-800">{opt.label}</option>
-                ))}
-              </select>
-            </div>
+
           </div>
 
           <div className="space-y-1">
@@ -525,9 +500,9 @@ export default function EventManagementPage() {
                           <span>{ev.location}</span>
                         </div>
                       )}
-                      <div className="flex items-center gap-1.5 text-[10px] text-blue-400 font-medium">
+                      <div className="flex items-center gap-1.5 text-[10px] text-green-400 font-medium">
                         <Mail className="w-3.5 h-3.5" />
-                        <span>Email reminder {getReminderLabel(ev.reminder_minutes || ev.reminderMinutes || 60)}</span>
+                        <span>Email reminder sent on event creation</span>
                         {ev.reminder_sent && (
                           <span className="text-green-400 ml-1">(sent)</span>
                         )}

@@ -15,7 +15,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function GrowthChartSection({ growthLogs, showForm, form, onFormChange, onSave, onToggleForm, saving, onEdit, onDelete }) {
+export default function GrowthChartSection({ growthLogs, showForm, form, onFormChange, onSave, onToggleForm, saving, onEdit, onDelete, loading = false }) {
   const chartData = growthLogs.map((l, i) => ({
     name: l.date ? new Date(l.date).toLocaleDateString() : "Log " + (i + 1),
     Weight: l.weight_kg,
@@ -58,7 +58,29 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
         </div>
       )}
 
-      {chartData.length > 0 ? (
+      {loading ? (
+        <div className="space-y-4 animate-pulse">
+          <div className="h-64 rounded-2xl" style={{ background: "var(--hover-bg)" }} />
+          <div className="rounded-2xl border overflow-hidden" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--card-border)" }}>
+              <div className="h-4 w-36 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+            </div>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="px-5 py-3 flex items-center gap-4" style={{ borderBottom: i < 3 ? "1px solid var(--card-border)" : undefined }}>
+                <div className="h-3 w-20 rounded" style={{ background: "var(--hover-bg)" }} />
+                <div className="flex-1 flex gap-4">
+                  <div className="h-4 w-16 rounded" style={{ background: "var(--hover-bg)" }} />
+                  <div className="h-4 w-16 rounded" style={{ background: "var(--hover-bg)" }} />
+                </div>
+                <div className="flex gap-1">
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : chartData.length > 0 ? (
         <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>

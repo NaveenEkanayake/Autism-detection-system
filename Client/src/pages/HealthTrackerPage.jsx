@@ -372,19 +372,19 @@ function HealthTrackerPage() {
           <>
             {activeTab === "milestones" && (
               <MilestoneSection milestones={milestones} ageMonths={ageMonths} onToggle={handleToggleMilestone}
-                milestoneLogs={milestoneLogs}
+                milestoneLogs={milestoneLogs} loading={dataLoading}
                 onEdit={(m) => { setEditingMilestone(m); setMilestoneForm({ label: m.title || "", category: m.category || "Social", age_months: String(m.age_months || "") }); setShowMilestoneForm(true); }}
                 onDelete={handleDeleteMilestone} />
             )}
             {activeTab === "growth" && (
               <GrowthChartSection growthLogs={growthLogs} showForm={showGrowthForm} form={growthForm} onFormChange={handleGrowthFormChange} onSave={handleSaveGrowth}
-                onToggleForm={() => { setShowGrowthForm(p => !p); setEditingGrowth(null); setGrowthForm({ weight_kg: "", height_cm: "", head_cm: "" }); }} saving={saving}
+                onToggleForm={() => { setShowGrowthForm(p => !p); setEditingGrowth(null); setGrowthForm({ weight_kg: "", height_cm: "", head_cm: "" }); }} saving={saving} loading={dataLoading}
                 onEdit={(g) => { setEditingGrowth(g); setGrowthForm({ weight_kg: g.weight_kg || "", height_cm: g.height_cm || "", head_cm: g.head_cm || "" }); setShowGrowthForm(true); }}
                 onDelete={handleDeleteGrowth} />
             )}
             {activeTab === "sleep" && (
               <SleepLogSection sleepLogs={sleepLogs} showForm={showSleepForm} form={sleepForm} onFormChange={handleSleepFormChange} onSave={handleSaveSleep}
-                onToggleForm={() => { setShowSleepForm(p => !p); setEditingSleep(null); setSleepForm({ start_time: "", end_time: "", quality: "good", notes: "" }); }} saving={saving}
+                onToggleForm={() => { setShowSleepForm(p => !p); setEditingSleep(null); setSleepForm({ start_time: "", end_time: "", quality: "good", notes: "" }); }} saving={saving} loading={dataLoading}
                 onEdit={(s) => { setEditingSleep(s); setSleepForm({ start_time: s.start_time || "", end_time: s.end_time || "", quality: s.quality || "good", notes: s.notes || "" }); setShowSleepForm(true); }}
                 onDelete={handleDeleteSleep} />
             )}

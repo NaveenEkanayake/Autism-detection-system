@@ -7,7 +7,7 @@ const QUALITY_COLORS = {
   poor: { bg: "rgba(239,68,68,0.15)", text: "#f87171" },
 };
 
-export default function SleepLogSection({ sleepLogs, showForm, form, onFormChange, onSave, onToggleForm, saving, onEdit, onDelete }) {
+export default function SleepLogSection({ sleepLogs, showForm, form, onFormChange, onSave, onToggleForm, saving, onEdit, onDelete, loading = false }) {
   return (
     <div className="max-w-3xl space-y-5">
       <div className="flex items-center justify-between">
@@ -70,7 +70,26 @@ export default function SleepLogSection({ sleepLogs, showForm, form, onFormChang
       )}
 
       <div className="space-y-3">
-        {sleepLogs.length === 0 ? (
+        {loading ? (
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="p-4 rounded-2xl border flex items-center gap-4" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <div className="w-10 h-10 rounded-xl" style={{ background: "var(--hover-bg)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-4 w-20 rounded" style={{ background: "var(--hover-bg)" }} />
+                    <div className="h-4 w-14 rounded-full" style={{ background: "var(--hover-bg)" }} />
+                  </div>
+                  <div className="h-3 w-48 rounded" style={{ background: "var(--hover-bg)" }} />
+                </div>
+                <div className="flex gap-1">
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                  <div className="w-6 h-6 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : sleepLogs.length === 0 ? (
           <div className="p-10 text-center rounded-2xl border border-dashed" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
             <Moon className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
             <p style={{ color: "var(--text-secondary)" }}>No sleep logs recorded yet.</p>
