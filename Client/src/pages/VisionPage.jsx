@@ -15,6 +15,14 @@ function VisionPage() {
   const uploadRef = useRef(null);
   const resultRef = useRef(null);
 
+  // Reset state when switching children
+  useEffect(() => {
+    setUploadedFile(null);
+    setProcessing(false);
+    setVisionResult(null);
+    setCurrentStep(1);
+  }, [activePatient?.id]);
+
   const handleVisionUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;

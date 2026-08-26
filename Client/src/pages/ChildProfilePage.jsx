@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Baby, Calendar, Edit2, Trash2, Save, X, AlertTriangle, Activity, Brain, Camera, TrendingUp, Moon, FileText } from "lucide-react";
+import { ArrowLeft, Baby, Calendar, Edit2, Trash2, Save, X, AlertTriangle } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
 import { showToast } from "../components/ui/toast";
 import { api } from "../lib/api";
@@ -29,7 +29,6 @@ export default function ChildProfilePage() {
   const [form, setForm] = useState({ name: "", dob: "", sex: "male" });
   const [saving, setSaving] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [stats, setStats] = useState({ sdq: 0, vision: 0, milestones: 0, growth: 0, sleep: 0, documents: 0 });
 
   useEffect(() => {
     setLoading(true);
@@ -41,30 +40,7 @@ export default function ChildProfilePage() {
     setLoading(false);
   }, [childId, patients]);
 
-  useEffect(() => {
-    if (!childId) return;
-    const loadStats = async () => {
-      try {
-        const sdqData = await api(`/sdq/history/${childId}`).catch(() => ({ submissions: [] }));
-        const visionData = await api(`/vision/history/${childId}`).catch(() => []);
-        const milestonesData = await api(`/health/milestones?child_id=${childId}`).catch(() => []);
-        const growthData = await api(`/health/growth?child_id=${childId}`).catch(() => []);
-        const sleepData = await api(`/health/sleep?child_id=${childId}`).catch(() => []);
 
-        setStats({
-          sdq: (sdqData.submissions || []).length,
-          vision: (Array.isArray(visionData) ? visionData : []).length,
-          milestones: (Array.isArray(milestonesData) ? milestonesData : []).length,
-          growth: (Array.isArray(growthData) ? growthData : []).length,
-          sleep: (Array.isArray(sleepData) ? sleepData : []).length,
-          documents: 0,
-        });
-      } catch (err) {
-        console.error("Failed to load child stats:", err);
-      }
-    };
-    loadStats();
-  }, [childId]);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -136,14 +112,6 @@ export default function ChildProfilePage() {
             <div className="h-10 w-32 rounded-xl" style={{ background: "var(--hover-bg)" }} />
           </div>
         </div>
-        <div className="rounded-2xl p-6 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-          <div className="h-4 w-36 rounded-lg mb-4" style={{ background: "var(--hover-bg)" }} />
-          <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-20 rounded-xl" style={{ background: "var(--hover-bg)" }} />
-            ))}
-          </div>
-        </div>
       </div>
     );
   }
@@ -156,14 +124,7 @@ export default function ChildProfilePage() {
     );
   }
 
-  const statCards = [
-    { label: "SDQ", value: stats.sdq, icon: Brain, color: "text-blue-400", bg: "rgba(59,147,245,0.12)" },
-    { label: "Vision", value: stats.vision, icon: Camera, color: "text-purple-400", bg: "rgba(168,85,247,0.12)" },
-    { label: "Milestones", value: stats.milestones, icon: Activity, color: "text-teal-400", bg: "rgba(20,184,166,0.12)" },
-    { label: "Growth", value: stats.growth, icon: TrendingUp, color: "text-cyan-400", bg: "rgba(6,182,212,0.12)" },
-    { label: "Sleep", value: stats.sleep, icon: Moon, color: "text-indigo-400", bg: "rgba(99,102,241,0.12)" },
-    { label: "Documents", value: stats.documents, icon: FileText, color: "text-amber-400", bg: "rgba(245,158,11,0.12)" },
-  ];
+
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -312,29 +273,7 @@ export default function ChildProfilePage() {
         )}
       </div>
 
-      {/* Stats Summary */}
-      <div className="rounded-2xl p-6 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-        <h3 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Screening Summary</h3>
-        <div className="grid grid-cols-3 gap-3">
-          {statCards.map(({ label, value, icon: Icon, color, bg }) => (
-            <div
-              key={label}
-              className="p-3 rounded-xl text-center cursor-pointer transition-all hover:scale-[1.02]"
-              style={{ background: bg }}
-              onClick={() => {
-                if (label === "SDQ") navigate("/sdq");
-                else if (label === "Vision") navigate("/vision");
-                else if (label === "Milestones" || label === "Growth" || label === "Sleep") navigate("/health");
-                else if (label === "Documents") navigate("/documents");
-              }}
-            >
-              <Icon className={`w-5 h-5 mx-auto mb-1.5 ${color}`} />
-              <p className={`text-lg font-bold ${color}`}>{value}</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>{label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

@@ -45,6 +45,13 @@ function DocumentLibraryPage() {
   const containerRef = useRef(null);
   const docsRef = useRef(null);
 
+  // Reset state when switching children
+  useEffect(() => {
+    setDocuments([]);
+    setFolders([]);
+    setCurrentFolderId(null);
+  }, [activePatient?.id]);
+
   // Fetch documents and folders — try backend first, fallback to localStorage
   useEffect(() => {
     if (!activePatient?.id) {
@@ -56,7 +63,7 @@ function DocumentLibraryPage() {
     const loadData = async () => {
       try {
         // Try fetching folders from backend
-        const backendFolders = await api("/folders").catch(() => null);
+        const backendFolders = await api(`/folders?child_id=${activePatient.id}`).catch(() => null);
         if (backendFolders && Array.isArray(backendFolders)) {
           setFolders(backendFolders);
           localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(backendFolders));
@@ -127,7 +134,7 @@ function DocumentLibraryPage() {
       // Try backend creation (server validates duplicates too)
       const newFolder = await api("/folders", {
         method: "POST",
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, child_id: activePatient.id }),
       });
       const updatedFolders = [...folders, newFolder];
       setFolders(updatedFolders);

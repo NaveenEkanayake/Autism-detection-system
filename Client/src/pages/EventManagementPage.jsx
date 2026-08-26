@@ -47,6 +47,13 @@ export default function EventManagementPage() {
 
   const containerRef = useRef(null);
 
+  // Reset state when switching children
+  useEffect(() => {
+    setEvents([]);
+    setShowEventForm(false);
+    setFilterCategory("all");
+  }, [activePatient?.id]);
+
   // Load events from backend (Firestore) with localStorage fallback
   useEffect(() => {
     if (!activePatient?.id) {

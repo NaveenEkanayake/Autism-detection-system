@@ -29,13 +29,17 @@ def allowed_file(filename: str) -> bool:
 
 @documents_blueprint.route("/folders", methods=["GET"])
 async def list_folders():
-    """List all folders for the authenticated user."""
+    """List folders for the authenticated user and optionally filtered by child_id."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
 
+    child_id = request.args.get("child_id")
     try:
-        folders = await db.folders.find({"user_id": user_id})
+        if child_id:
+            folders = await db.folders.find({"user_id": user_id, "child_id": child_id})
+        else:
+            folders = await db.folders.find({"user_id": user_id})
         return jsonify(folders), 200
     except Exception as e:
         return jsonify({"detail": f"Failed to fetch folders: {str(e)}"}), 500
@@ -43,18 +47,21 @@ async def list_folders():
 
 @documents_blueprint.route("/folders", methods=["POST"])
 async def create_folder():
-    """Create a new folder. Validates duplicate names per user."""
+    """Create a new folder. Validates duplicate names per user per child."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
 
     body = request.get_json() or {}
     name = (body.get("name") or "").strip()
+    child_id = body.get("child_id")
     if not name:
         return jsonify({"detail": "Folder name is required."}), 400
+    if not child_id:
+        return jsonify({"detail": "child_id is required."}), 400
 
-    # Check for duplicate folder name (case-insensitive)
-    existing_folders = await db.folders.find({"user_id": user_id})
+    # Check for duplicate folder name (case-insensitive) per child
+    existing_folders = await db.folders.find({"user_id": user_id, "child_id": child_id})
     for f in existing_folders:
         if f.get("name", "").lower() == name.lower():
             return jsonify({"detail": f'A folder named "{name}" already exists.'}), 409
@@ -63,6 +70,7 @@ async def create_folder():
     folder_data = {
         "id": folder_id,
         "user_id": user_id,
+        "child_id": child_id,
         "name": name,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }

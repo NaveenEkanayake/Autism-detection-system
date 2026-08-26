@@ -59,6 +59,19 @@ function HealthTrackerPage() {
   const [showMilestoneForm, setShowMilestoneForm] = useState(false);
   const [milestoneForm, setMilestoneForm] = useState({ label: "", category: "Social", age_months: "" });
 
+  // Reset state when switching children
+  useEffect(() => {
+    setMilestoneLogs([]);
+    setGrowthLogs([]);
+    setSleepLogs([]);
+    setShowMilestoneForm(false);
+    setShowGrowthForm(false);
+    setShowSleepForm(false);
+    setEditingMilestone(null);
+    setEditingGrowth(null);
+    setEditingSleep(null);
+  }, [activePatient?.id]);
+
   // Fetch all health data from backend APIs
   useEffect(() => {
     if (!activePatient?.id) {

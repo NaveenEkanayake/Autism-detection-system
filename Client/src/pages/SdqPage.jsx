@@ -78,6 +78,14 @@ function SdqPage() {
 
   const handleAnswer = (qId, val) => setAnswers((prev) => ({ ...prev, [qId]: val }));
 
+  // Reset state when switching children
+  useEffect(() => {
+    setAnswers({});
+    setSdqPage(0);
+    setSubmitted(false);
+    setScores(null);
+  }, [activePatient?.id]);
+
   useEffect(() => {
     if (!questionsRef.current) return;
     const direction = sdqPage > prevPage.current ? 1 : -1;

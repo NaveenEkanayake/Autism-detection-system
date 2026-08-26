@@ -185,6 +185,7 @@ function DashboardPage() {
   const [latestSdq, setLatestSdq] = useState(null);
   const [latestVision, setLatestVision] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [childScreenings, setChildScreenings] = useState([]);
 
   // Inline delete confirmation modal state (replaces window.confirm)
   const [clearModalOpen, setClearModalOpen] = useState(false);
@@ -206,6 +207,7 @@ function DashboardPage() {
     
     const loadData = async () => {
       setStatsLoading(true);
+      const screenings = [];
       try {
         await Promise.all(
           (patients || []).map(async (child) => {
@@ -214,12 +216,52 @@ function DashboardPage() {
               const visionHistory = await api(`/vision/history/${child.id}`).catch(() => []);
               
               const sdqSubmissions = sdqHistory.submissions || [];
-              localStorage.setItem(`sdq_${child.id}`, JSON.stringify(sdqSubmissions));
-              localStorage.setItem(`vision_${child.id}`, JSON.stringify(visionHistory));
+              const visionList = Array.isArray(visionHistory) ? visionHistory : [];
+
+              // Build screening row for this child
+              const childSdq = sdqSubmissions[0];
+              const childVision = visionList[0];
+              
+              const hasSdq = childSdq && (
+                (childSdq.scores && childSdq.scores.total !== undefined && childSdq.scores.total !== null) ||
+                (childSdq.total_difficulties_score !== undefined && childSdq.total_difficulties_score !== null)
+              );
+              const hasVision = childVision && childVision.riskScore !== undefined && childVision.riskScore !== null;
+              
+              let sdqStatus = "Pending";
+              if (hasSdq) {
+                const total = childSdq.scores?.total !== undefined ? childSdq.scores.total : childSdq.total_difficulties_score;
+                const level = childSdq.scores?.risk !== undefined ? childSdq.scores.risk : (childSdq.band || "Safe");
+                sdqStatus = `Completed (${total}/40 - ${level.replace(/_/g, " ")})`;
+              }
+              
+              let visionStatus = "Pending";
+              if (hasVision) {
+                visionStatus = `Completed (${childVision.riskScore}% - ${childVision.riskLevel})`;
+              }
+              
+              let overallRisk = "Pending";
+              if (hasSdq && hasVision) {
+                const sdqVal = parseFloat(childSdq.scores?.total !== undefined ? childSdq.scores.total : childSdq.total_difficulties_score) * 2.5;
+                const visionVal = parseFloat(childVision.riskScore);
+                const percentage = (sdqVal + visionVal) / 2;
+                if (percentage < 40) overallRisk = "Safe";
+                else if (percentage < 70) overallRisk = "Moderate";
+                else overallRisk = "At Risk";
+              }
+
+              screenings.push({
+                id: child.id,
+                name: child.name,
+                sdqStatus,
+                visionStatus,
+                overallRisk,
+                isActive: child.id === activePatient?.id
+              });
 
               if (child.id === activePatient.id) {
                 setLatestSdq(sdqSubmissions[0] || null);
-                setLatestVision(visionHistory[0] || null);
+                setLatestVision(visionList[0] || null);
                 
                 const milestonesData = JSON.parse(localStorage.getItem(`milestones_${child.id}`) || "[]");
                 const growthData = JSON.parse(localStorage.getItem(`growth_${child.id}`) || "[]");
@@ -232,7 +274,7 @@ function DashboardPage() {
                   growth: growthData.length,
                   documents: documentsData.length,
                   sleep: sleepData.length,
-                  vision: visionHistory.length,
+                  vision: visionList.length,
                 });
               }
             } catch (childErr) {
@@ -243,57 +285,13 @@ function DashboardPage() {
       } catch (err) {
         console.error("Failed to load dashboard stats from backend:", err);
       } finally {
+        setChildScreenings(screenings);
         setStatsLoading(false);
       }
     };
 
     loadData();
   }, [activePatient?.id, patients, refreshTrigger]);
-
-  const childScreenings = (patients || []).map((child) => {
-    const sdqList = JSON.parse(localStorage.getItem(`sdq_${child.id}`) || "[]");
-    const visionList = JSON.parse(localStorage.getItem(`vision_${child.id}`) || "[]");
-    
-    const childSdq = sdqList[0];
-    const childVision = visionList[0];
-    
-    const hasSdq = childSdq && (
-      (childSdq.scores && childSdq.scores.total !== undefined && childSdq.scores.total !== null) ||
-      (childSdq.total_difficulties_score !== undefined && childSdq.total_difficulties_score !== null)
-    );
-    const hasVision = childVision && childVision.riskScore !== undefined && childVision.riskScore !== null;
-    
-    let sdqStatus = "Pending";
-    if (hasSdq) {
-      const total = childSdq.scores?.total !== undefined ? childSdq.scores.total : childSdq.total_difficulties_score;
-      const level = childSdq.scores?.risk !== undefined ? childSdq.scores.risk : (childSdq.band || "Safe");
-      sdqStatus = `Completed (${total}/40 - ${level.replace(/_/g, " ")})`;
-    }
-    
-    let visionStatus = "Pending";
-    if (hasVision) {
-      visionStatus = `Completed (${childVision.riskScore}% - ${childVision.riskLevel})`;
-    }
-    
-    let overallRisk = "Pending";
-    if (hasSdq && hasVision) {
-      const sdqVal = parseFloat(childSdq.scores?.total !== undefined ? childSdq.scores.total : childSdq.total_difficulties_score) * 2.5;
-      const visionVal = parseFloat(childVision.riskScore);
-      const percentage = (sdqVal + visionVal) / 2;
-      if (percentage < 40) overallRisk = "Safe";
-      else if (percentage < 70) overallRisk = "Moderate";
-      else overallRisk = "At Risk";
-    }
-    
-    return {
-      id: child.id,
-      name: child.name,
-      sdqStatus,
-      visionStatus,
-      overallRisk,
-      isActive: child.id === activePatient?.id
-    };
-  });
 
   const handleDownloadPdf = async (child) => {
     if (!child) return;
