@@ -1,11 +1,11 @@
-"""Server entrypoint script to launch the FastAPI application using uvicorn."""
-import uvicorn
+"""Server entrypoint script to launch the Flask application."""
+from app.main import app
 from app.config import settings
 
 if __name__ == "__main__":
-    uvicorn.run(
-        "app.main:app",
+    print(f"Starting Flask server on port {settings.PORT}...")
+    app.run(
         host="0.0.0.0",
         port=settings.PORT,
-        reload=True
+        debug=True
     )

@@ -19,6 +19,7 @@ class Settings:
     # Google/Firebase Client Verification
     GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
     FIREBASE_API_KEY: str = os.getenv("FIREBASE_API_KEY", "AIzaSyD6KLsdWAhQ7mvACDvmyt5Wzq69rN-f08k")
+    FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "autismdetection-c0337")
 
     # Google Gemini API
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")

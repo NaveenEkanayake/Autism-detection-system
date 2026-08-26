@@ -2,10 +2,11 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import DashboardPage from "./pages/DashboardPage";
 import SdqPage from "./pages/SdqPage";
-import VisionPage from "./pages/VisionPage";
 import HealthTrackerPage from "./pages/HealthTrackerPage";
 import DocumentLibraryPage from "./pages/DocumentLibraryPage";
+import EventManagementPage from "./pages/EventManagementPage";
 import VisionAnalysisPage from "./pages/VisionAnalysisPage";
+import VisionPage from "./pages/VisionPage";
 import AIChatPage from "./pages/AIChatPage";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 import { PatientsProvider } from "./hooks/usePatients";
@@ -29,6 +30,7 @@ function App() {
               <Route path="/ai-chat" element={<AIChatPage />} />
               <Route path="/health" element={<HealthTrackerPage />} />
               <Route path="/documents" element={<DocumentLibraryPage />} />
+              <Route path="/events" element={<EventManagementPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

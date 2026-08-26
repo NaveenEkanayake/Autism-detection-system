@@ -79,7 +79,7 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
         </div>
       )}
 
-      {chartData.length > 1 ? (
+      {chartData.length > 0 ? (
         <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>
@@ -95,7 +95,7 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
       ) : (
         <div className="p-10 text-center rounded-2xl border border-dashed" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <BarChart2 className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
-          <p style={{ color: "var(--text-secondary)" }}>Add at least 2 measurements to see the growth chart.</p>
+          <p style={{ color: "var(--text-secondary)" }}>Add at least 1 measurement to see the growth chart.</p>
         </div>
       )}
 

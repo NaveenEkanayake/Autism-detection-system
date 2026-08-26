@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LayoutDashboard, Brain, Camera, TrendingUp, FileText,
-  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sparkles, ChevronDown, UserPlus, Plus, Trash2
+  LayoutDashboard, Brain, Camera, TrendingUp, FileText, Calendar,
+  ChevronRight, Activity, Moon, CheckCircle, LogOut, Sparkles, ChevronDown, UserPlus, Plus, Trash2, Edit2
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { usePatients } from "../../hooks/usePatients";
 import { useTheme } from "../../hooks/useTheme";
+import { api } from "../../lib/api";
 import SkyToggle from "../ui/SkyToggle";
 
 const NAV_ITEMS = [
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { to: "/sdq", icon: Brain, label: "SDQ Assessment" },
   { to: "/health", icon: TrendingUp, label: "Health Tracker" },
   { to: "/documents", icon: FileText, label: "Documents" },
+  { to: "/events", icon: Calendar, label: "Reminders & Events" },
 ];
 
 const ANALYSIS_DROPDOWN = [
@@ -26,9 +28,10 @@ const SIDEBAR_WIDTH = 280;
 
 export default function Sidebar({ open, onClose }) {
   const { user, logout } = useAuth();
-  const { patients, activePatient, getAgeLabel, switchPatient, deleteChild, setAddChildOpen } = usePatients();
+  const { patients, activePatient, getAgeLabel, switchPatient, deleteChild, setAddChildOpen, setEditingChild } = usePatients();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
   const [analysisOpen, setAnalysisOpen] = useState(true);
   const [childDropdownOpen, setChildDropdownOpen] = useState(false);
@@ -47,22 +50,27 @@ export default function Sidebar({ open, onClose }) {
       setStats({ sdq: 0, milestones: 0, growth: 0, sleep: 0 });
       return;
     }
-    try {
-      const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
-      const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
-      const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
-      const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+    const fetchSidebarStats = async () => {
+      try {
+        const sdqHistory = await api(`/sdq/history/${activePatient.id}`).catch(() => ({ submissions: [] }));
+        const sdqSubmissions = sdqHistory.submissions || [];
 
-      setStats({
-        sdq: (sdqData || []).length,
-        milestones: (milestonesData || []).length,
-        growth: (growthData || []).length,
-        sleep: (sleepData || []).length,
-      });
-    } catch (err) {
-      console.error("Failed to fetch sidebar stats:", err);
-    }
-  }, [activePatient?.id, patients]);
+        const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
+        const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
+        const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
+
+        setStats({
+          sdq: sdqSubmissions.length,
+          milestones: milestonesData.length,
+          growth: growthData.length,
+          sleep: sleepData.length,
+        });
+      } catch (err) {
+        console.error("Failed to fetch sidebar stats from backend:", err);
+      }
+    };
+    fetchSidebarStats();
+  }, [activePatient?.id, patients, location.pathname]);
 
   const dynamicQuickStats = [
     { label: "SDQ", value: stats.sdq, color: "text-blue-400", icon: Brain },
@@ -231,10 +239,23 @@ export default function Sidebar({ open, onClose }) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            setEditingChild(p);
+                            setAddChildOpen(true);
+                            setChildDropdownOpen(false);
+                          }}
+                          className="p-2 rounded-lg opacity-75 hover:opacity-100 transition-all duration-200 hover:bg-blue-500/10"
+                          style={{ color: "rgba(96,165,250,0.8)" }}
+                          title={`Edit ${p.name}`}
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setConfirmDeleteId(p.id);
                           }}
-                          className="p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-red-500/10"
-                          style={{ color: "rgba(248,113,113,0.6)" }}
+                          className="p-2 rounded-lg opacity-75 hover:opacity-100 transition-all duration-200 hover:bg-red-500/10"
+                          style={{ color: "rgba(248,113,113,0.8)" }}
                           title={`Remove ${p.name}`}
                         >
                           <Trash2 className="w-3.5 h-3.5" />

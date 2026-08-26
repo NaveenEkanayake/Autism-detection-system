@@ -9,7 +9,7 @@ const badgeVariants = {
   }),
 };
 
-export default function WelcomeHeader({ patient, age, onNavigate }) {
+export default function WelcomeHeader({ patient, age, onAddChild }) {
   if (!patient) return null;
 
   return (
@@ -82,11 +82,11 @@ export default function WelcomeHeader({ patient, age, onNavigate }) {
         <motion.button
           whileHover={{ scale: 1.03, y: -1 }}
           whileTap={{ scale: 0.97 }}
-          className="flex items-center justify-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all duration-300 shadow-lg shadow-blue-500/15 w-full sm:w-auto"
+          className="flex items-center justify-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl text-white transition-all duration-300 shadow-lg shadow-blue-500/15 w-full sm:w-auto cursor-pointer"
           style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-          onClick={() => onNavigate("screening")}
+          onClick={onAddChild}
         >
-          <Zap className="w-4 h-4" /> New Assessment
+          <Plus className="w-4 h-4" /> Add Child
         </motion.button>
       </div>
     </motion.div>

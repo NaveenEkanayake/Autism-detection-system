@@ -3,9 +3,12 @@ export const API_URL = "http://localhost:8000/api";
 export async function api(endpoint, options = {}) {
   const token = localStorage.getItem("token");
   const headers = {
-    "Content-Type": "application/json",
     ...options.headers,
   };
+
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;

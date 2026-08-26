@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
-import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo } from "lucide-react";
+import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo, Folder, Edit2 } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
 import { showToast } from "../components/ui/toast";
 import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
@@ -26,6 +26,8 @@ function DocumentLibraryPage() {
   const navigate = useNavigate();
   const { activePatient } = usePatients();
   const [documents, setDocuments] = useState([]);
+  const [folders, setFolders] = useState([]);
+  const [currentFolderId, setCurrentFolderId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -36,7 +38,7 @@ function DocumentLibraryPage() {
   const containerRef = useRef(null);
   const docsRef = useRef(null);
 
-  // Fetch documents from localStorage
+  // Fetch documents and folders from localStorage
   useEffect(() => {
     if (!activePatient?.id) {
       setLoading(false);
@@ -46,13 +48,68 @@ function DocumentLibraryPage() {
     try {
       const data = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
       setDocuments(data || []);
+      const foldersData = JSON.parse(localStorage.getItem(`folders_${activePatient.id}`) || "[]");
+      setFolders(foldersData || []);
     } catch (err) {
-      console.error("Failed to fetch documents:", err);
+      console.error("Failed to fetch documents and folders:", err);
       setDocuments([]);
+      setFolders([]);
     } finally {
       setLoading(false);
     }
   }, [activePatient?.id]);
+
+  const handleCreateFolder = () => {
+    const name = prompt("Enter new folder name:");
+    if (!name || !name.trim()) return;
+    const newFolder = {
+      id: `folder-${Date.now()}`,
+      name: name.trim(),
+      createdAt: new Date().toISOString()
+    };
+    const updatedFolders = [...folders, newFolder];
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+    showToast({ title: "Folder Created", description: `Folder "${name}" was created successfully.`, type: "success" });
+  };
+
+  const handleRenameFolder = (folderId) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    const newName = prompt("Enter new folder name:", folder.name);
+    if (!newName || !newName.trim()) return;
+    const updatedFolders = folders.map(f => f.id === folderId ? { ...f, name: newName.trim() } : f);
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+    showToast({ title: "Folder Renamed", description: `Folder was renamed to "${newName}".`, type: "success" });
+  };
+
+  const handleDeleteFolder = (folderId) => {
+    const folder = folders.find(f => f.id === folderId);
+    if (!folder) return;
+    if (window.confirm(`Are you sure you want to delete folder "${folder.name}"? Documents inside will be moved back to the root.`)) {
+      const updatedFolders = folders.filter(f => f.id !== folderId);
+      setFolders(updatedFolders);
+      localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+      
+      // Move documents inside folder back to root (folderId: null)
+      const updatedDocs = documents.map(d => d.folderId === folderId ? { ...d, folderId: null } : d);
+      setDocuments(updatedDocs);
+      localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(updatedDocs));
+      
+      if (currentFolderId === folderId) {
+        setCurrentFolderId(null);
+      }
+      showToast({ title: "Folder Deleted", description: "Folder was removed successfully.", type: "success" });
+    }
+  };
+
+  const handleMoveDocument = (docId, targetFolderId) => {
+    const updatedDocs = documents.map(d => d.id === docId ? { ...d, folderId: targetFolderId || null } : d);
+    setDocuments(updatedDocs);
+    localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(updatedDocs));
+    showToast({ title: "Document Moved", type: "success" });
+  };
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -96,6 +153,7 @@ function DocumentLibraryPage() {
             size: file.size,
             size_bytes: file.size,
             createdAt: new Date().toISOString(),
+            folderId: currentFolderId,
           };
           try {
             const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
@@ -120,6 +178,7 @@ function DocumentLibraryPage() {
               size: file.size,
               size_bytes: file.size,
               createdAt: new Date().toISOString(),
+              folderId: currentFolderId,
             };
             const firestoreRef = await addDoc(collection(db, "documents"), docData);
             const docWithId = { ...docData, id: firestoreRef.id };
@@ -212,6 +271,7 @@ function DocumentLibraryPage() {
     try {
       // Gather child details and clinical notes directly from localStorage
       const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
+      const visionData = JSON.parse(localStorage.getItem(`vision_${activePatient.id}`) || "[]");
       const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
       const growthData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
       const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
@@ -241,41 +301,78 @@ function DocumentLibraryPage() {
       doc.text(`Date of Birth: ${activePatient.dob}`, 20, 59);
       doc.text(`Gender: ${activePatient.sex || "N/A"}`, 20, 66);
       
-      // SDQ Scores
-      doc.line(20, 72, 190, 72);
-      doc.setFont("helvetica", "bold");
-      doc.text("Latest SDQ Assessment Score Summary", 20, 80);
+      let yOffset = 74;
       
-      if (sdqData && sdqData.length > 0) {
-        const latestSdq = sdqData[0];
-        doc.setFont("helvetica", "normal");
-        doc.text(`Completed on: ${new Date(latestSdq.createdAt).toLocaleDateString()}`, 20, 87);
-        doc.text(`Total Difficulties Score: ${latestSdq.scores?.totalDifficulties || 0}`, 20, 94);
-        doc.text(`- Emotional Problems: ${latestSdq.scores?.emotional || 0}`, 20, 101);
-        doc.text(`- Conduct Problems: ${latestSdq.scores?.conduct || 0}`, 20, 108);
-        doc.text(`- Hyperactivity: ${latestSdq.scores?.hyperactivity || 0}`, 20, 115);
-        doc.text(`- Peer Problems: ${latestSdq.scores?.peerProblems || 0}`, 20, 122);
-        doc.text(`- Prosocial Behavior: ${latestSdq.scores?.prosocial || 0}`, 20, 129);
+      // AI Vision Results (YOLOv8)
+      doc.line(20, yOffset - 3, 190, yOffset - 3);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("YOLOv8 Behavioral Vision Screening Summary", 20, yOffset);
+      yOffset += 8;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      if (visionData && visionData.length > 0) {
+        const latestVision = visionData[0];
+        doc.text(`Completed on: ${new Date(latestVision.createdAt).toLocaleDateString()}`, 20, yOffset);
+        yOffset += 7;
+        doc.text(`Vision Screening Risk Index: ${latestVision.riskScore || 0}% (${latestVision.riskLevel || "low"} risk)`, 20, yOffset);
+        yOffset += 7;
+        const splitSummary = doc.splitTextToSize(`AI Model Summary: ${latestVision.summary || ""}`, 170);
+        doc.text(splitSummary, 20, yOffset);
+        yOffset += (splitSummary.length * 5) + 3;
       } else {
         doc.setFont("helvetica", "italic");
-        doc.text("No Strengths & Difficulties Questionnaire (SDQ) records completed yet.", 20, 87);
+        doc.text("No YOLOv8 behavioral vision screening assessments completed yet.", 20, yOffset);
+        yOffset += 7;
+      }
+      
+      // SDQ Scores
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.line(20, yOffset - 3, 190, yOffset - 3);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text("Latest SDQ Assessment Score Summary", 20, yOffset);
+      yOffset += 8;
+      
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      if (sdqData && sdqData.length > 0) {
+        const latestSdq = sdqData[0];
+        const sdqTotalScore = latestSdq.scores?.total !== undefined ? latestSdq.scores.total : latestSdq.scores?.totalDifficulties || 0;
+        const sdqRiskLabel = latestSdq.scores?.risk || "normal";
+        
+        doc.text(`Completed on: ${new Date(latestSdq.createdAt).toLocaleDateString()}`, 20, yOffset);
+        yOffset += 7;
+        doc.text(`Total Difficulties Score: ${sdqTotalScore}/40 (${sdqRiskLabel} range)`, 20, yOffset);
+        yOffset += 7;
+        doc.text(`- Emotional: ${latestSdq.scores?.emotional || 0}   - Conduct: ${latestSdq.scores?.conduct || 0}   - Hyperactivity: ${latestSdq.scores?.hyperactivity || 0}   - Peer Problems: ${latestSdq.scores?.peer || latestSdq.scores?.peerProblems || 0}   - Prosocial: ${latestSdq.scores?.prosocial || 0}`, 20, yOffset);
+        yOffset += 10;
+      } else {
+        doc.setFont("helvetica", "italic");
+        doc.text("No Strengths & Difficulties Questionnaire (SDQ) records completed yet.", 20, yOffset);
+        yOffset += 7;
       }
       
       // Milestones
-      doc.line(20, 137, 190, 137);
+      doc.line(20, yOffset - 3, 190, yOffset - 3);
       doc.setFont("helvetica", "bold");
-      doc.text("Developmental Milestones Logged", 20, 145);
+      doc.setFontSize(12);
+      doc.text("Developmental Milestones Logged", 20, yOffset);
+      yOffset += 8;
       
       doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
       if (milestonesData && milestonesData.length > 0) {
-        let yOffset = 152;
         milestonesData.slice(0, 5).forEach((m) => {
-          doc.text(`• [${m.date}] ${m.title} (${m.category})`, 20, yOffset);
+          doc.text(`• [${m.date || m.createdAt?.split("T")[0]}] ${m.title} (${m.category})`, 20, yOffset);
           yOffset += 7;
         });
       } else {
         doc.setFont("helvetica", "italic");
-        doc.text("No developmental milestones logged.", 20, 152);
+        doc.text("No developmental milestones logged.", 20, yOffset);
+        yOffset += 7;
       }
 
       // Download file directly
@@ -351,63 +448,140 @@ function DocumentLibraryPage() {
         </div>
       </div>
 
-      <div ref={docsRef} className="doc-section space-y-3">
-        <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>Your Documents ({documents.length})</h3>
+      <div ref={docsRef} className="doc-section space-y-4">
+        {/* Folder Navigation Trail & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <div className="flex items-center gap-2 text-sm">
+            <button 
+              onClick={() => setCurrentFolderId(null)}
+              className={`hover:text-blue-400 transition-colors bg-transparent border-none cursor-pointer text-xs uppercase tracking-wider font-bold ${currentFolderId === null ? "text-blue-400 font-extrabold" : "text-neutral-500"}`}
+            >
+              Root Directory
+            </button>
+            {currentFolderId !== null && (
+              <>
+                <span className="text-neutral-600">/</span>
+                <span className="text-blue-300 font-semibold text-xs uppercase tracking-wider">
+                  {folders.find(f => f.id === currentFolderId)?.name || "Folder"}
+                </span>
+              </>
+            )}
+          </div>
+          <button
+            onClick={handleCreateFolder}
+            className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all hover:bg-blue-500/10 hover:border-blue-500/30 cursor-pointer"
+            style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)", color: "var(--text-primary)" }}
+          >
+            <Folder className="w-3.5 h-3.5" /> Create Folder
+          </button>
+        </div>
+
+        {/* Contents Grid/List */}
+        <h3 className="font-semibold text-sm mt-4" style={{ color: "var(--text-primary)" }}>
+          {currentFolderId === null ? "Folders & Documents" : `Items in Folder (${documents.filter(d => d.folderId === currentFolderId).length})`}
+        </h3>
+
         {loading ? (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading documents...</p>
           </div>
-        ) : documents.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-            <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
-            <p style={{ color: "var(--text-secondary)" }}>No documents yet</p>
-          </div>
         ) : (
-          documents.map((doc) => (
-            <div key={doc.id} data-doc-id={doc.id}
-              className="flex items-center gap-4 p-4 rounded-2xl border transition-all hover:shadow-md"
-              style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--hover-bg)" }}>
-                {getFileIcon(doc.type)}
+          <div className="space-y-3">
+            {/* Render Folders (only at root) */}
+            {currentFolderId === null && folders.map((folder) => (
+              <div 
+                key={folder.id}
+                onClick={() => setCurrentFolderId(folder.id)}
+                className="flex items-center gap-4 p-4 rounded-2xl border transition-all hover:shadow-md cursor-pointer group"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-500/10 text-blue-400">
+                  <Folder className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate group-hover:text-blue-400 transition-colors" style={{ color: "var(--text-primary)" }}>{folder.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                    {documents.filter(d => d.folderId === folder.id).length} items
+                  </p>
+                </div>
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={() => handleRenameFolder(folder.id)}
+                    className="p-2 rounded-xl transition-colors hover:bg-white/5 text-blue-400 bg-transparent border-none cursor-pointer"
+                    title="Rename Folder"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteFolder(folder.id)}
+                    className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400 bg-transparent border-none cursor-pointer"
+                    title="Delete Folder"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{doc.name}</p>
-                <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatSize(doc.size_bytes)}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <button className="p-2 rounded-xl transition-colors hover:bg-white/5" style={{ color: "var(--text-muted)" }}>
-                  <Download className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400" onClick={() => handleDelete(doc.id)}>
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))}
 
-      <div className="doc-section rounded-2xl p-5 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-        <h3 className="font-semibold mb-3" style={{ color: "var(--text-primary)" }}>Generate PDF Report</h3>
-        <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>Create a comprehensive PDF report combining SDQ scores, growth charts, and milestones.</p>
-        <button
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 disabled:opacity-40 hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-          onClick={handleGeneratePdf}
-          disabled={generatingPdf}
-        >
-          {generatingPdf ? (
-            <>
-              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Generating...
-            </>
-          ) : pdfDone ? (
-            <>Download Report</>
-          ) : (
-            <>Generate Report</>
-          )}
-        </button>
+            {/* Render Documents belonging to currentFolderId */}
+            {documents.filter(d => d.folderId === currentFolderId).map((doc) => (
+              <div key={doc.id} data-doc-id={doc.id}
+                className="flex items-center gap-4 p-4 rounded-2xl border transition-all hover:shadow-md"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--hover-bg)" }}>
+                  {getFileIcon(doc.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate" style={{ color: "var(--text-primary)" }}>{doc.name}</p>
+                  <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatSize(doc.size_bytes)}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  {/* Folder mover select option */}
+                  <select
+                    value={doc.folderId || ""}
+                    onChange={(e) => handleMoveDocument(doc.id, e.target.value || null)}
+                    className="text-xs rounded border border-neutral-700 bg-neutral-900 text-neutral-300 p-1.5 focus:outline-none cursor-pointer"
+                    title="Move to Folder"
+                  >
+                    <option value="">Move to Root</option>
+                    {folders.map(f => (
+                      <option key={f.id} value={f.id}>{f.name}</option>
+                    ))}
+                  </select>
+
+                  <a 
+                    href={doc.fileUrl} 
+                    target="_blank" 
+                    rel="noreferrer"
+                    className="p-2 rounded-xl transition-colors hover:bg-white/5 text-neutral-400"
+                    title="Download/View Document"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                  <button className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400 bg-transparent border-none cursor-pointer" onClick={() => handleDelete(doc.id)}>
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {/* Empty state for directory */}
+            {folders.length === 0 && documents.filter(d => d.folderId === currentFolderId).length === 0 && currentFolderId === null && (
+              <div className="text-center py-12 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
+                <p style={{ color: "var(--text-secondary)" }}>No files or folders yet</p>
+              </div>
+            )}
+
+            {documents.filter(d => d.folderId === currentFolderId).length === 0 && currentFolderId !== null && (
+              <div className="text-center py-12 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <FileText className="w-10 h-10 mx-auto mb-3" style={{ color: "var(--text-muted)" }} />
+                <p style={{ color: "var(--text-secondary)" }}>This folder is empty</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

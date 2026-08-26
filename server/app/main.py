@@ -1,47 +1,54 @@
-"""Main FastAPI application configuration and startup handlers."""
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+"""Main Flask application configuration and startup handlers."""
+import asyncio
+from flask import Flask, jsonify
+from flask_cors import CORS
 from .config import settings
-from .routers import auth
+from .routers.auth import auth_blueprint
+from .routers.patients import patients_blueprint
+from .routers.sdq import sdq_blueprint
+from .routers.milestones import milestones_blueprint
+from .routers.documents import documents_blueprint
+from .routers.vision import vision_blueprint
+from .routers.ai import ai_blueprint
 from .db import ping_db
 
-app = FastAPI(
-    title="Autism Detection Platform API",
-    description="Backend API for autism screening, user accounts, and AI integration.",
-    version="1.0.0"
+app = Flask(
+    "app",
+    static_folder=None
 )
 
 # Configure CORS Middleware
 origins = settings.CORS_ORIGINS
-# FastAPI will raise an error if allow_origins=['*'] is set with allow_credentials=True.
-# We check if wildcard is present and toggle allow_credentials accordingly.
-allow_creds = False if "*" in origins or (isinstance(origins, str) and origins == "*") else True
+# Flask-CORS supports list or string origins
+CORS(app, resources={r"/api/*": {"origins": origins}}, supports_credentials=True)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=allow_creds,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Startup event
-@app.on_event("startup")
-async def startup_db_client():
-    is_connected = await ping_db()
-    if is_connected:
-        print("[Startup] Connected to MongoDB Atlas database successfully.")
-    else:
-        print("[Startup] WARNING: Could not connect to MongoDB Atlas database.")
+# Startup DB ping (since Flask is synchronous on startup, we run ping_db in a sync runner)
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+is_connected = loop.run_until_complete(ping_db())
+if is_connected:
+    print("[Startup] Connected to Firebase Firestore database successfully.")
+else:
+    print("[Startup] WARNING: Could not connect to Firebase Firestore database.")
 
 # Root Route
-@app.get("/")
+@app.route("/", methods=["GET"])
 def read_root():
-    return {
+    return jsonify({
         "status": "online",
         "message": "Autism Detection Platform Backend API is running.",
         "version": "1.0.0"
-    }
+    })
 
-# Mount Routers under /api prefix
-app.include_router(auth.router, prefix="/api")
+# Register blueprints under the /api prefix
+app.register_blueprint(auth_blueprint, url_prefix="/api")
+app.register_blueprint(patients_blueprint, url_prefix="/api")
+app.register_blueprint(sdq_blueprint, url_prefix="/api")
+app.register_blueprint(milestones_blueprint, url_prefix="/api")
+app.register_blueprint(documents_blueprint, url_prefix="/api")
+app.register_blueprint(vision_blueprint, url_prefix="/api")
+app.register_blueprint(ai_blueprint, url_prefix="/api")

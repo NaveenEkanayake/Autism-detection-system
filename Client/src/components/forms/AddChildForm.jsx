@@ -24,10 +24,10 @@ function validateDob(dob) {
   return "";
 }
 
-export default function AddChildForm({ onAdd, onCancel }) {
-  const [form, setForm] = useState({ name: "", dob: "", sex: "male" });
+export default function AddChildForm({ onAdd, onCancel, initialData }) {
+  const [form, setForm] = useState(initialData || { name: "", dob: "", sex: "male" });
   const [errors, setErrors] = useState({ name: "", dob: "" });
-  const [touched, setTouched] = useState({ name: false, dob: false });
+  const [touched, setTouched] = useState({ name: !!initialData, dob: !!initialData });
   const [saving, setSaving] = useState(false);
 
   const maxDate = new Date().toISOString().split("T")[0];
@@ -62,9 +62,11 @@ export default function AddChildForm({ onAdd, onCancel }) {
     setSaving(true);
     try {
       await onAdd(form);
-      setForm({ name: "", dob: "", sex: "male" });
-      setTouched({ name: false, dob: false });
-      setErrors({ name: "", dob: "" });
+      if (!initialData) {
+        setForm({ name: "", dob: "", sex: "male" });
+        setTouched({ name: false, dob: false });
+        setErrors({ name: "", dob: "" });
+      }
     } finally {
       setSaving(false);
     }
@@ -138,7 +140,7 @@ export default function AddChildForm({ onAdd, onCancel }) {
           Cancel
         </button>
         <GradientButton type="submit" loading={saving} disabled={!isValid} className="flex-1">
-          <span className="label">{saving ? "Adding..." : "Add Child"}</span>
+          <span className="label">{saving ? (initialData ? "Saving..." : "Adding...") : (initialData ? "Save Changes" : "Add Child")}</span>
         </GradientButton>
       </div>
     </form>

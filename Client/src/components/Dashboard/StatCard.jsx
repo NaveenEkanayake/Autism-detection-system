@@ -25,6 +25,8 @@ export default function StatCard({ label, value, icon: Icon, color, loading }) {
   return (
     <motion.div
       className="relative overflow-hidden rounded-2xl p-5 border transition-all duration-300 group"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       style={{
         background: "var(--card-bg)",
         borderColor: "var(--card-border)",

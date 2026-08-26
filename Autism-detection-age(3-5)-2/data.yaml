@@ -1,0 +1,6 @@
+train: c:\Users\Asus S15\Desktop\Autism-detection-sytemt-new\Autism-detection-system\Autism-detection-age(3-5)-2\train\images
+val: c:\Users\Asus S15\Desktop\Autism-detection-sytemt-new\Autism-detection-system\Autism-detection-age(3-5)-2\valid\images
+test: c:\Users\Asus S15\Desktop\Autism-detection-sytemt-new\Autism-detection-system\Autism-detection-age(3-5)-2\test\images
+
+nc: 2
+names: ['Autism', 'Non-Autism']

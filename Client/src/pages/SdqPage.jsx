@@ -4,46 +4,47 @@ import { ChevronLeft, ChevronRight, Send, RefreshCw, Trophy, AlertTriangle } fro
 import { usePatients } from "../hooks/usePatients";
 import PageWrapper from "../components/Layout/PageWrapper";
 import { showToast } from "../components/ui/toast";
+import { api } from "../lib/api";
 
 const SDQ_QUESTIONS = [
-  { id: 1, text: "Considerate of other people's feelings", scale: "prosocial" },
-  { id: 2, text: "Restless, overactive, cannot stay still for long", scale: "hyperactivity" },
-  { id: 3, text: "Often complains of headaches, stomach-aches or sickness", scale: "emotional" },
-  { id: 4, text: "Shares readily with other children (treats, toys, pencils etc)", scale: "prosocial" },
-  { id: 5, text: "Often loses temper", scale: "conduct" },
-  { id: 6, text: "Rather solitary, tends to play alone", scale: "peer" },
-  { id: 7, text: "Generally well behaved, usually does what adults request", scale: "conduct" },
-  { id: 8, text: "Many worries, often seems worried", scale: "emotional" },
-  { id: 9, text: "Helpful if someone is hurt, upset or feeling ill", scale: "prosocial" },
-  { id: 10, text: "Constantly fidgeting or squirming", scale: "hyperactivity" },
-  { id: 11, text: "Has at least one good friend", scale: "peer" },
-  { id: 12, text: "Often fights with other children or bullies them", scale: "conduct" },
-  { id: 13, text: "Often unhappy, down-hearted or tearful", scale: "emotional" },
-  { id: 14, text: "Generally liked by other children", scale: "peer" },
-  { id: 15, text: "Easily distracted, concentration wanders", scale: "hyperactivity" },
-  { id: 16, text: "Nervous or clingy in new situations, easily loses confidence", scale: "emotional" },
-  { id: 17, text: "Kind to younger children", scale: "prosocial" },
-  { id: 18, text: "Often lies or cheats", scale: "conduct" },
-  { id: 19, text: "Picked on or bullied by other children", scale: "peer" },
-  { id: 20, text: "Often volunteers to help others (parents, teachers, other children)", scale: "prosocial" },
-  { id: 21, text: "Thinks things out before acting", scale: "hyperactivity" },
-  { id: 22, text: "Steals from home, school or elsewhere", scale: "conduct" },
-  { id: 23, text: "Gets along better with adults than with other children", scale: "peer" },
-  { id: 24, text: "Many fears, easily scared", scale: "emotional" },
-  { id: 25, text: "Sees tasks through to the end, good attention span", scale: "hyperactivity" },
+  { id: 1, text: "Does your child respond when you call their name?", scale: "prosocial" },
+  { id: 2, text: "Does your child make eye contact while talking or interacting?", scale: "prosocial" },
+  { id: 3, text: "Does your child smile back when someone smiles at them?", scale: "prosocial" },
+  { id: 4, text: "Does your child point to show you something interesting?", scale: "prosocial" },
+  { id: 5, text: "Does your child use gestures, such as waving, nodding, or shaking their head?", scale: "prosocial" },
+  { id: 6, text: "Does your child speak using words or short sentences appropriate for their age?", scale: "hyperactivity" },
+  { id: 7, text: "Does your child repeat the same words, phrases, or sounds often?", scale: "conduct" },
+  { id: 8, text: "Does your child understand simple instructions, such as “bring your shoes”?", scale: "hyperactivity" },
+  { id: 9, text: "Does your child show interest in playing with other children?", scale: "peer" },
+  { id: 10, text: "Does your child find it difficult to make or keep friends?", scale: "peer" },
+  { id: 11, text: "Does your child prefer to play alone most of the time?", scale: "peer" },
+  { id: 12, text: "Does your child engage in pretend play, such as pretending a toy car is real?", scale: "hyperactivity" },
+  { id: 13, text: "Does your child understand how other people may feel, such as being sad or angry?", scale: "emotional" },
+  { id: 14, text: "Does your child become upset when their normal routine changes?", scale: "emotional" },
+  { id: 15, text: "Does your child repeatedly line up toys or arrange objects in a particular way?", scale: "conduct" },
+  { id: 16, text: "Does your child have a very strong interest in a specific toy, topic, or activity?", scale: "conduct" },
+  { id: 17, text: "Does your child make repeated body movements, such as hand flapping, rocking, spinning, or finger movements?", scale: "conduct" },
+  { id: 18, text: "Is your child unusually sensitive to loud sounds?", scale: "emotional" },
+  { id: 19, text: "Is your child sensitive to bright lights, certain smells, clothing materials, or food textures?", scale: "emotional" },
+  { id: 20, text: "Does your child cover their ears, avoid places, or become distressed because of sensory experiences?", scale: "emotional" },
+  { id: 21, text: "Does your child become very upset or have meltdowns that are difficult to calm?", scale: "hyperactivity" },
+  { id: 22, text: "Does your child have difficulty expressing their needs, feelings, or discomfort?", scale: "hyperactivity" },
+  { id: 23, text: "Has your child lost any language, social, or play skills they previously had?", scale: "conduct" },
+  { id: 24, text: "Do these behaviours affect your child’s school life, daily activities, or relationships?", scale: "peer" },
+  { id: 25, text: "Do you have concerns about your child’s communication, behaviour, social interaction, or development?", scale: "peer" },
 ];
 
 const SCALE_META = {
-  emotional: { label: "Emotional", color: "text-amber-400", bg: "bg-amber-500/15", border: "border-amber-500/30" },
-  conduct: { label: "Conduct", color: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" },
-  hyperactivity: { label: "Hyperactivity", color: "text-orange-400", bg: "bg-orange-500/15", border: "border-orange-500/30" },
-  peer: { label: "Peer Problems", color: "text-blue-400", bg: "bg-blue-500/15", border: "border-blue-500/30" },
-  prosocial: { label: "Prosocial", color: "text-teal-400", bg: "bg-teal-500/15", border: "border-teal-500/30" },
+  emotional: { label: "Emotional/Sensory", color: "text-amber-400", bg: "bg-amber-500/15", border: "border-amber-500/30" },
+  conduct: { label: "Behavioral/Repetitive", color: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" },
+  hyperactivity: { label: "Hyperactivity/Attention", color: "text-orange-400", bg: "bg-orange-500/15", border: "border-orange-500/30" },
+  peer: { label: "Social/Peer Problems", color: "text-blue-400", bg: "bg-blue-500/15", border: "border-blue-500/30" },
+  prosocial: { label: "Prosocial Interaction", color: "text-teal-400", bg: "bg-teal-500/15", border: "border-teal-500/30" },
 };
 
 const SDQ_OPTIONS = ["Not True", "Somewhat True", "Certainly True"];
 const QUESTIONS_PER_PAGE = 5;
-const REVERSED = [7, 11, 14, 21, 25];
+const REVERSED = [1, 2, 3, 4, 5, 6, 8, 9, 12, 13];
 
 function calculateScores(answers) {
   const scales = { emotional: 0, conduct: 0, hyperactivity: 0, peer: 0, prosocial: 0 };
@@ -107,15 +108,31 @@ function SdqPage() {
     }
     setSaving(true);
     try {
-      const calculatedScores = calculateScores(answers);
-      
+      const responseData = await api("/sdq/submit", {
+        method: "POST",
+        body: JSON.stringify({
+          child_id: activePatient.id,
+          responses: answers,
+        }),
+      });
+
+      const calculatedScores = {
+        total: responseData.result.total_difficulties_score,
+        risk: responseData.result.priority === "high" ? "high" : responseData.result.band === "slightly_raised" ? "borderline" : "low",
+        emotional: responseData.result.subscale_scores.emotional,
+        conduct: responseData.result.subscale_scores.conduct,
+        hyperactivity: responseData.result.subscale_scores.hyperactivity,
+        peer: responseData.result.subscale_scores.peer,
+        prosocial: responseData.result.subscale_scores.prosocial,
+      };
+
       const sdqList = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
       const newSdq = {
-        id: `sdq-${Date.now()}`,
+        id: responseData.result.id,
         patientId: activePatient.id,
         responses: answers,
         scores: calculatedScores,
-        createdAt: new Date().toISOString()
+        createdAt: responseData.result.submitted_at,
       };
       sdqList.unshift(newSdq);
       localStorage.setItem(`sdq_${activePatient.id}`, JSON.stringify(sdqList));

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { Textarea } from "./Textarea";
 import { cn } from "../../lib/utils";
 import { usePatients } from "../../hooks/usePatients";
+import { api } from "../../lib/api";
 import {
     ArrowUpIcon,
     Paperclip,
@@ -38,6 +39,17 @@ export function VercelV0Chat() {
         const query = value.trim();
         if (!query || sending) return;
 
+        if (!activePatient?.id) {
+            setMessages((prev) => [
+                ...prev,
+                { role: "user", text: query },
+                { role: "assistant", text: "Please select or add a child profile from the dashboard to enable personalized AI recommendations based on their assessments." }
+            ]);
+            setValue("");
+            adjustHeight(true);
+            return;
+        }
+
         setValue("");
         adjustHeight(true);
         setSending(true);
@@ -46,21 +58,19 @@ export function VercelV0Chat() {
         setMessages((prev) => [...prev, { role: "user", text: query }]);
 
         try {
-            // Simulate AI responding offline
-            await new Promise((resolve) => setTimeout(resolve, 1500));
-            const replies = [
-                "That's a very thoughtful question about child development! Early screening assessments like the SDQ are great for mapping strengths and areas of concern.",
-                "Yes, observing interactive play, eye contact, and language development is highly recommended. You can track these behaviors under the Health Tracker tab.",
-                "Thank you for sharing. Clinical guidelines recommend monitoring these developmental trends regularly. You can also generate a PDF Clinical Report in the Document Library to share with your pediatrician.",
-                "I recommend checking the Milestones section of the Health Tracker to see standard development markers for their age range."
-            ];
-            const randomReply = replies[Math.floor(Math.random() * replies.length)];
-            setMessages((prev) => [...prev, { role: "assistant", text: randomReply }]);
+            const data = await api("/ai/suggestions", {
+                method: "POST",
+                body: JSON.stringify({
+                    childId: activePatient.id,
+                    query: query
+                })
+            });
+            setMessages((prev) => [...prev, { role: "assistant", text: data.reply }]);
         } catch (err) {
             console.error("AI chat error:", err);
             setMessages((prev) => [
                 ...prev,
-                { role: "assistant", text: "Sorry, I could not complete that request." }
+                { role: "assistant", text: "Sorry, I encountered an issue connecting to the AI recommendations engine. Please make sure the backend server is running and try again." }
             ]);
         } finally {
             setSending(false);

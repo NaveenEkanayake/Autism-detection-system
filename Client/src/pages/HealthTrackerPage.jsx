@@ -113,15 +113,30 @@ function HealthTrackerPage() {
   const handleGrowthFormChange = (key, value) => setGrowthForm((prev) => ({ ...prev, [key]: value }));
   const handleSaveGrowth = async () => {
     if (!activePatient?.id) return;
+    const w = parseFloat(growthForm.weight_kg);
+    const h = parseFloat(growthForm.height_cm);
+    const hc = parseFloat(growthForm.head_cm);
+    if (!w && !h && !hc) {
+      showToast({ title: "Validation Error", description: "Please enter at least one measurement.", type: "error" });
+      return;
+    }
+    if ((w && w <= 0) || (h && h <= 0) || (hc && hc <= 0)) {
+      showToast({ title: "Validation Error", description: "Measurements must be positive numbers.", type: "error" });
+      return;
+    }
     setSaving(true);
     try {
       const newRecord = {
         id: `growth-${Date.now()}`,
         patientId: activePatient.id,
         date: new Date().toISOString(),
-        weight: parseFloat(growthForm.weight_kg) || null,
-        height: parseFloat(growthForm.height_cm) || null,
-        headCircumference: parseFloat(growthForm.head_cm) || null,
+        recorded_at: new Date().toISOString(),
+        weight_kg: w || null,
+        height_cm: h || null,
+        head_cm: hc || null,
+        weight: w || null,
+        height: h || null,
+        headCircumference: hc || null,
       };
       const growthLogsData = JSON.parse(localStorage.getItem(`growth_${activePatient.id}`) || "[]");
       growthLogsData.push(newRecord);
@@ -144,16 +159,29 @@ function HealthTrackerPage() {
   const handleSleepFormChange = (key, value) => setSleepForm((prev) => ({ ...prev, [key]: value }));
   const handleSaveSleep = async () => {
     if (!activePatient?.id) return;
+    if (!sleepForm.start_time || !sleepForm.end_time) {
+      showToast({ title: "Validation Error", description: "Bedtime and wake times are required.", type: "error" });
+      return;
+    }
+    const start = new Date(sleepForm.start_time);
+    const end = new Date(sleepForm.end_time);
+    if (end <= start) {
+      showToast({ title: "Validation Error", description: "Wake up time must be after bedtime.", type: "error" });
+      return;
+    }
     setSaving(true);
     try {
-      const start = new Date(sleepForm.start_time);
+      const durationHours = Math.max(0, (end - start) / (1000 * 60 * 60));
       const newRecord = {
         id: `sleep-${Date.now()}`,
         patientId: activePatient.id,
         date: start.toISOString(),
-        bedtime: sleepForm.start_time,
-        wakeTime: sleepForm.end_time,
+        start_time: sleepForm.start_time,
+        end_time: sleepForm.end_time,
         quality: sleepForm.quality,
+        notes: sleepForm.notes || "",
+        duration_hours: durationHours,
+        recorded_at: new Date().toISOString(),
         naps: 0,
       };
       const sleepLogsData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
@@ -176,6 +204,15 @@ function HealthTrackerPage() {
 
   const handleSaveMilestone = async () => {
     if (!activePatient?.id) return;
+    if (!milestoneForm.label.trim()) {
+      showToast({ title: "Validation Error", description: "Milestone name is required.", type: "error" });
+      return;
+    }
+    const months = parseInt(milestoneForm.age_months);
+    if (isNaN(months) || months <= 0) {
+      showToast({ title: "Validation Error", description: "Please enter a valid age in months.", type: "error" });
+      return;
+    }
     setSaving(true);
     try {
       const now = new Date().toISOString();

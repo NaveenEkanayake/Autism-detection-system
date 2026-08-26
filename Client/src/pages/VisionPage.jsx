@@ -4,6 +4,7 @@ import { CheckCircle, Info, Upload, Sparkles } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
 import Stepper from "../components/ui/Stepper";
 import { showToast } from "../components/ui/toast";
+import { api } from "../lib/api";
 
 function VisionPage() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -35,67 +36,66 @@ function VisionPage() {
       { scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" }
     );
 
-    try {
-      // Simulate YOLOv8 backend processing delay
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = async () => {
+      try {
+        const base64Image = reader.result;
+        const response = await api("/vision/analyze", {
+          method: "POST",
+          body: JSON.stringify({
+            image: base64Image,
+            childId: activePatient.id,
+          }),
+        });
 
-      const isHighRisk = Math.random() > 0.6;
-      const mockResult = isHighRisk ? {
-        detections: [
-          { label: "Atypical Gaze Avoidance", confidence: 0.85 },
-          { label: "Repetitive Hand Flapping", confidence: 0.78 },
-          { label: "Reduced Social Smiling", confidence: 0.65 },
-          { label: "Delayed Response to Name", confidence: 0.72 }
-        ],
-        behavioral_flags: ["Repetitive movements detected", "Inconsistent visual attention"],
-        risk_indicators: ["Gaze avoidance observed", "Motor stereotypies"],
-        summary: "The YOLOv8 computer vision model analyzed the uploaded footage. Object and facial tracking detected patterns of gaze avoidance and repetitive hand movements. Affect scoring showed reduced social-emotional expressions.",
-        riskScore: 75,
-        riskLevel: "high"
-      } : {
-        detections: [
-          { label: "Consistent Gaze Response", confidence: 0.89 },
-          { label: "Typical Hand Coordination", confidence: 0.91 },
-          { label: "Frequent Social Smiling", confidence: 0.82 },
-          { label: "Active Joint Attention", confidence: 0.87 }
-        ],
-        behavioral_flags: ["Typical gaze patterns", "Positive social engagement", "Age-appropriate coordination"],
-        risk_indicators: [],
-        summary: "The YOLOv8 computer vision model analyzed the uploaded footage. Eye tracking and posture analysis indicate age-appropriate gaze response, high social affect (smiling), and standard motor coordination.",
-        riskScore: 20,
-        riskLevel: "low"
-      };
+        // Save to localStorage so it persists and updates dashboard risk assessments
+        const visionList = JSON.parse(localStorage.getItem(`vision_${activePatient.id}`) || "[]");
+        const newVision = {
+          id: response.id,
+          patientId: activePatient.id,
+          createdAt: response.createdAt,
+          detections: response.detections,
+          behavioral_flags: response.behavioral_flags || [],
+          risk_indicators: response.risk_indicators || [],
+          summary: response.summary,
+          riskScore: response.riskScore,
+          riskLevel: response.riskLevel
+        };
+        visionList.unshift(newVision);
+        localStorage.setItem(`vision_${activePatient.id}`, JSON.stringify(visionList));
 
-      // Save to localStorage so it persists and updates dashboard risk assessments
-      const visionList = JSON.parse(localStorage.getItem(`vision_${activePatient.id}`) || "[]");
-      const newVision = {
-        id: `vision-${Date.now()}`,
-        patientId: activePatient.id,
-        createdAt: new Date().toISOString(),
-        ...mockResult
-      };
-      visionList.unshift(newVision);
-      localStorage.setItem(`vision_${activePatient.id}`, JSON.stringify(visionList));
-
-      setVisionResult(mockResult);
+        setVisionResult(newVision);
+        showToast({
+          title: "Analysis Complete",
+          description: "Vision behavioral patterns analyzed successfully.",
+          type: "success",
+        });
+      } catch (err) {
+        console.error("[Vision] Analysis failed:", err.message);
+        showToast({
+          title: "Analysis Failed",
+          description: err.message || "An error occurred during analysis.",
+          type: "error",
+        });
+        setUploadedFile(null);
+        setCurrentStep(1);
+      } finally {
+        setCurrentStep(3);
+        setProcessing(false);
+      }
+    };
+    reader.onerror = (err) => {
+      console.error("[Vision] File reading failed:", err);
       showToast({
-        title: "Analysis Complete",
-        description: "Vision behavioral patterns analyzed successfully.",
-        type: "success",
-      });
-    } catch (err) {
-      console.error("[Vision] Analysis failed:", err.message);
-      showToast({
-        title: "Analysis Failed",
-        description: err.message || "An error occurred during analysis.",
+        title: "File Reading Failed",
+        description: "Failed to read the uploaded media file.",
         type: "error",
       });
       setUploadedFile(null);
       setCurrentStep(1);
-    } finally {
-      setCurrentStep(3);
       setProcessing(false);
-    }
+    };
   };
 
   useEffect(() => {
@@ -116,6 +116,16 @@ function VisionPage() {
       return () => ctx.revert();
     }
   }, [visionResult]);
+
+  const getRiskBadgeStyles = (level) => {
+    if (level === "At Risk" || level === "high") {
+      return "bg-red-500/15 text-red-400 border border-red-500/30";
+    }
+    if (level === "Moderate" || level === "moderate") {
+      return "bg-amber-500/15 text-amber-400 border border-amber-500/30";
+    }
+    return "bg-teal-500/15 text-teal-400 border border-teal-500/30";
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -172,10 +182,10 @@ function VisionPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Detection Results</h3>
-              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>Autism Screening Score: <span className="font-bold">{visionResult.riskScore}%</span> ({visionResult.riskLevel} risk)</p>
+              <p className="text-xs mt-1" style={{ color: "var(--text-secondary)" }}>Autism Screening Score: <span className="font-bold">{visionResult.riskScore}%</span></p>
             </div>
-            <span className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-teal-500/15 text-teal-400 border border-teal-500/30">
-              <CheckCircle className="w-3 h-3" /> Analysis Complete
+            <span className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${getRiskBadgeStyles(visionResult.riskLevel)}`}>
+              <CheckCircle className="w-3 h-3" /> {visionResult.riskLevel}
             </span>
           </div>
 
