@@ -179,6 +179,32 @@ function SdqPage() {
     });
   };
 
+  if (saving) {
+    return (
+      <PageWrapper title="Submitting Assessment...">
+        <div className="space-y-5 animate-pulse">
+          <div className="rounded-2xl p-6 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <div className="h-6 w-48 rounded-lg mb-3" style={{ background: "var(--hover-bg)" }} />
+            <div className="h-4 w-32 rounded" style={{ background: "var(--hover-bg)" }} />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="rounded-2xl p-4 border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <div className="h-3 w-16 rounded mb-2" style={{ background: "var(--hover-bg)" }} />
+                <div className="h-8 w-10 rounded mb-2" style={{ background: "var(--hover-bg)" }} />
+                <div className="h-1.5 rounded-full" style={{ background: "var(--hover-bg)" }} />
+              </div>
+            ))}
+          </div>
+          <div className="text-center py-4">
+            <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-2" />
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Analyzing responses...</p>
+          </div>
+        </div>
+      </PageWrapper>
+    );
+  }
+
   if (submitted && scores) {
     return (
       <PageWrapper title="SDQ Assessment Results">

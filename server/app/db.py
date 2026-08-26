@@ -131,7 +131,7 @@ async def update_document(collection_id: str, doc_id: str, data: dict) -> bool:
 # 1.3 Firestore Collection Proxy (attribute-based access)
 # ----------------------------------------------------
 class FirestoreCollectionProxy:
-    """Emulates the subset of MongoDB collection methods used by our routers."""
+    """Emulates a collection interface (find/insert/update/delete) backed by Firestore REST API."""
     def __init__(self, collection_id: str):
         self.collection_id = collection_id
 
@@ -170,7 +170,7 @@ class FirestoreCollectionProxy:
         if "id" not in data:
             data = {**data, "id": doc_id}
         success = await insert_document(self.collection_id, doc_id, data)
-        # Return a Mongo-like result object so callers can do result.inserted_id
+        # Return a result object so callers can do result.inserted_id
         return type("InsertOneResult", (), {
             "inserted_id": doc_id,
             "acknowledged": success,

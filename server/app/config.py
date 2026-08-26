@@ -13,11 +13,7 @@ class Settings:
     JWT_ALGORITHM: str = os.getenv("JWT_ALGORITHM", "HS256")
     JWT_EXPIRE_DAYS: int = int(os.getenv("JWT_EXPIRE_DAYS", "7"))
 
-    # MongoDB
-    MONGODB_URL: str = os.getenv("MONGODB_URL", "")
-
-    # Google/Firebase Client Verification
-    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    # Firebase Client Verification
     FIREBASE_API_KEY: str = os.getenv("FIREBASE_API_KEY", "AIzaSyD6KLsdWAhQ7mvACDvmyt5Wzq69rN-f08k")
     FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "autismdetection-c0337")
 
@@ -25,6 +21,13 @@ class Settings:
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     GEMINI_URL: str = "https://generativelanguage.googleapis.com/v1beta/models"
+
+    # Document storage
+    DOCUMENT_STORAGE_DIR: str = os.getenv("DOCUMENT_STORAGE_DIR", str(BASE_DIR / "uploads"))
+
+    # Gmail SMTP for event email notifications
+    SMTP_EMAIL: str = os.getenv("SMTP_EMAIL", "nekanayake789@gmail.com")
+    SMTP_APP_PASSWORD: str = os.getenv("SMTP_APP_PASSWORD", "")
 
     # CORS Config
     CORS_ORIGINS: list = ["http://localhost:5173", "http://127.0.0.1:5173"]

@@ -39,9 +39,12 @@ async def ai_suggestions():
     if child.get("parent_id") != user_id:
         return jsonify({"detail": "Permission denied. Child profile does not belong to this account."}), 403
 
-    # Load latest SDQ assessment and latest Vision analysis for this child
+    # Load latest SDQ assessment, Vision analysis, milestones, growth, and sleep for this child
     latest_sdq = await db.sdq_submissions.find_one({"child_id": child_id}, sort=[("submitted_at", -1)])
     latest_vision = await db.vision_analyses.find_one({"child_id": child_id}, sort=[("created_at", -1)])
+    all_milestones = await db.milestone_logs.find({"child_id": child_id})
+    all_growth = await db.growth_logs.find({"child_id": child_id})
+    all_sleep = await db.sleep_logs.find({"child_id": child_id})
 
     # Format child status information for Gemini prompt context
     child_name = child.get("name", "the child")
@@ -66,6 +69,24 @@ async def ai_suggestions():
         ai_conf = latest_vision.get("risk_score", 0.0)
         vision_info = f"Risk Score: {ai_conf}% (Risk Level: {latest_vision.get('risk_level', 'N/A')}). Summary: {latest_vision.get('summary', '')}"
 
+    # Format milestones
+    milestones_info = "None logged yet"
+    if all_milestones:
+        milestone_lines = [f"- {m.get('title', 'N/A')} ({m.get('category', 'General')}, {m.get('age_months', '?')}m) - {m.get('date', '')}" for m in all_milestones[:10]]
+        milestones_info = f"{len(all_milestones)} milestones logged:\n" + "\n".join(milestone_lines)
+
+    # Format growth
+    growth_info = "None logged yet"
+    if all_growth:
+        latest_g = all_growth[0] if all_growth else {}
+        growth_info = f"{len(all_growth)} records. Latest: Weight={latest_g.get('weight_kg', 'N/A')}kg, Height={latest_g.get('height_cm', 'N/A')}cm, Head={latest_g.get('head_cm', 'N/A')}cm"
+
+    # Format sleep
+    sleep_info = "None logged yet"
+    if all_sleep:
+        latest_s = all_sleep[0] if all_sleep else {}
+        sleep_info = f"{len(all_sleep)} logs. Latest: {latest_s.get('duration_hours', 'N/A')}hrs, Quality={latest_s.get('quality', 'N/A')}"
+
     # Determine priority (Sets priority to High if SDQ difficulty is clinical >= 8 (20%) OR AI confidence is high > 80%)
     priority = "Normal"
     if sdq_score >= 8 or ai_conf > 80.0:
@@ -80,19 +101,25 @@ async def ai_suggestions():
 
     # Build Gemini system prompt
     prompt = (
-        f"You are a supportive developmental screening AI assistant. You help parents understand behavioral and visual assessments for their children.\n\n"
+        f"You are a supportive developmental screening AI assistant for the AuraTrack platform. You help parents understand their child's development using all available data.\n\n"
         f"Context for the current child:\n"
         f"- Name: {child_name}\n"
         f"- Date of Birth: {child_age}\n"
         f"- Gender: {child_sex}\n"
         f"- Latest SDQ Assessment: {sdq_info}\n"
         f"- Latest AI Vision screening (YOLOv8): {vision_info}\n"
+        f"- CDC Milestones Achieved: {milestones_info}\n"
+        f"- Growth Chart Records: {growth_info}\n"
+        f"- Sleep Log Records: {sleep_info}\n"
         f"- Calculated Priority/Urgency: {priority}\n"
         f"- Assigned Support Level: {support_level}\n\n"
         f"Parent's Query: {query}\n\n"
-        f"Respond to the parent's query in a warm, encouraging, and clinical screening context. "
-        f"Provide personalized developmental recommendations, exercises, or behavioral modifications appropriate for the child's context. "
-        f"Remember, do not make a final medical diagnosis; frame your advice as supportive recommendations and screening insights."
+        f"IMPORTANT: Only use the data provided above to answer. Do not fabricate information. "
+        f"Reference the child's actual milestone achievements, growth measurements, and sleep patterns in your response. "
+        f"If asked about data not provided above, say that data is not yet available.\n\n"
+        f"Respond in a warm, encouraging tone. Provide personalized developmental recommendations, exercises, "
+        f"or behavioral modifications appropriate for the child's specific context and age. "
+        f"Frame all advice as supportive screening insights, not a medical diagnosis."
     )
 
     # Call Gemini API

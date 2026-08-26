@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { gsap } from "gsap";
 import { ArrowLeft, Shield, Upload, FileText, Trash2, Download, File, Image, FileVideo, Folder, Edit2 } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
 import { showToast } from "../components/ui/toast";
-import { ref as sRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { collection, addDoc } from "firebase/firestore";
-import { storage, db, auth } from "../lib/firebase";
+import { api } from "../lib/api";
+
 import { jsPDF } from "jspdf";
 
 function formatSize(bytes) {
@@ -29,78 +29,240 @@ function DocumentLibraryPage() {
   const [folders, setFolders] = useState([]);
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Custom styled modal state (replacing prompt/confirm popup alert dialogs)
+  const [modalType, setModalType] = useState(null);
+  const [modalTargetId, setModalTargetId] = useState(null);
+  const [modalInput, setModalInput] = useState("");
+  const [modalError, setModalError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [dragOver, setDragOver] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [pdfDone, setPdfDone] = useState(false);
+
   const fileInputRef = useRef(null);
   const containerRef = useRef(null);
   const docsRef = useRef(null);
 
-  // Fetch documents and folders from localStorage
+  // Fetch documents and folders — try backend first, fallback to localStorage
   useEffect(() => {
     if (!activePatient?.id) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    try {
-      const data = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
-      setDocuments(data || []);
-      const foldersData = JSON.parse(localStorage.getItem(`folders_${activePatient.id}`) || "[]");
-      setFolders(foldersData || []);
-    } catch (err) {
-      console.error("Failed to fetch documents and folders:", err);
-      setDocuments([]);
-      setFolders([]);
-    } finally {
+
+    const loadData = async () => {
+      try {
+        // Try fetching folders from backend
+        const backendFolders = await api("/folders").catch(() => null);
+        if (backendFolders && Array.isArray(backendFolders)) {
+          setFolders(backendFolders);
+          localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(backendFolders));
+        } else {
+          const localFolders = JSON.parse(localStorage.getItem(`folders_${activePatient.id}`) || "[]");
+          setFolders(localFolders || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch folders:", err);
+        const localFolders = JSON.parse(localStorage.getItem(`folders_${activePatient.id}`) || "[]");
+        setFolders(localFolders || []);
+      }
+
+      try {
+        // Try fetching documents from backend
+        const backendDocs = await api(`/documents/${activePatient.id}`).catch(() => null);
+        if (backendDocs && backendDocs.documents) {
+          // Map backend fields to frontend-expected fields
+          const mappedDocs = backendDocs.documents.map(d => ({
+            id: d.id,
+            patientId: d.child_id,
+            name: d.original_filename || d.name || "Untitled",
+            type: d.category || d.type || "other",
+            fileUrl: d.fileUrl || "",
+            size: d.size_bytes || d.size || 0,
+            size_bytes: d.size_bytes || d.size || 0,
+            createdAt: d.uploaded_at || d.createdAt || new Date().toISOString(),
+            folderId: d.folder_id || d.folderId || null,
+          }));
+          setDocuments(mappedDocs);
+          localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(mappedDocs));
+        } else {
+          const localDocs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+          setDocuments(localDocs || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch documents:", err);
+        const localDocs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+        setDocuments(localDocs || []);
+      }
+
       setLoading(false);
-    }
+    };
+
+    loadData();
   }, [activePatient?.id]);
 
-  const handleCreateFolder = () => {
-    const name = prompt("Enter new folder name:");
-    if (!name || !name.trim()) return;
-    const newFolder = {
-      id: `folder-${Date.now()}`,
-      name: name.trim(),
-      createdAt: new Date().toISOString()
-    };
-    const updatedFolders = [...folders, newFolder];
-    setFolders(updatedFolders);
-    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+  const triggerCreateFolder = () => {
+    setModalType("create_folder");
+    setModalInput("");
+    setModalError("");
+  };
+
+  const handleConfirmCreateFolder = async () => {
+    const name = modalInput.trim();
+    if (!name) {
+      setModalError("Folder name is required.");
+      return;
+    }
+
+    // Client-side duplicate check first
+    if (folders.some(f => f.name.toLowerCase() === name.toLowerCase())) {
+      setModalError("A folder with this name already exists.");
+      return;
+    }
+
+    try {
+      // Try backend creation (server validates duplicates too)
+      const newFolder = await api("/folders", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      const updatedFolders = [...folders, newFolder];
+      setFolders(updatedFolders);
+      localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+    } catch (err) {
+      // Fallback to local-only creation
+      const msg = err.message || "";
+      if (msg.includes("already exists")) {
+        setModalError(msg);
+        return;
+      }
+      const newFolder = {
+        id: `folder-${Date.now()}`,
+        name: name,
+        created_at: new Date().toISOString(),
+      };
+      const updatedFolders = [...folders, newFolder];
+      setFolders(updatedFolders);
+      localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+    }
+
+    setModalType(null);
     showToast({ title: "Folder Created", description: `Folder "${name}" was created successfully.`, type: "success" });
   };
 
-  const handleRenameFolder = (folderId) => {
+  const triggerRenameFolder = (folderId) => {
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
-    const newName = prompt("Enter new folder name:", folder.name);
-    if (!newName || !newName.trim()) return;
-    const updatedFolders = folders.map(f => f.id === folderId ? { ...f, name: newName.trim() } : f);
-    setFolders(updatedFolders);
-    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
-    showToast({ title: "Folder Renamed", description: `Folder was renamed to "${newName}".`, type: "success" });
+    setModalTargetId(folderId);
+    setModalInput(folder.name);
+    setModalType("rename_folder");
+    setModalError("");
   };
 
-  const handleDeleteFolder = (folderId) => {
+  const handleConfirmRenameFolder = async () => {
+    const name = modalInput.trim();
+    if (!name) {
+      setModalError("Folder name is required.");
+      return;
+    }
+    if (folders.some(f => f.id !== modalTargetId && f.name.toLowerCase() === name.toLowerCase())) {
+      setModalError("A folder with this name already exists.");
+      return;
+    }
+
+    try {
+      await api(`/folders/${modalTargetId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      });
+    } catch (err) {
+      // Continue with local update even if backend fails
+      console.warn("Backend rename failed, updating locally:", err.message);
+    }
+
+    const updatedFolders = folders.map(f => f.id === modalTargetId ? { ...f, name: name } : f);
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+    setModalType(null);
+    setModalTargetId(null);
+    showToast({ title: "Folder Renamed", description: `Folder was renamed to "${name}".`, type: "success" });
+  };
+
+  const triggerDeleteFolder = (folderId) => {
+    setModalTargetId(folderId);
+    setModalType("delete_folder");
+  };
+
+  const handleConfirmDeleteFolder = async () => {
+    const folderId = modalTargetId;
     const folder = folders.find(f => f.id === folderId);
     if (!folder) return;
-    if (window.confirm(`Are you sure you want to delete folder "${folder.name}"? Documents inside will be moved back to the root.`)) {
-      const updatedFolders = folders.filter(f => f.id !== folderId);
-      setFolders(updatedFolders);
-      localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
-      
-      // Move documents inside folder back to root (folderId: null)
-      const updatedDocs = documents.map(d => d.folderId === folderId ? { ...d, folderId: null } : d);
-      setDocuments(updatedDocs);
-      localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(updatedDocs));
-      
-      if (currentFolderId === folderId) {
-        setCurrentFolderId(null);
+
+    try {
+      await api(`/folders/${folderId}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("Backend delete failed, updating locally:", err.message);
+    }
+
+    const updatedFolders = folders.filter(f => f.id !== folderId);
+    setFolders(updatedFolders);
+    localStorage.setItem(`folders_${activePatient.id}`, JSON.stringify(updatedFolders));
+
+    const updatedDocs = documents.map(d => d.folderId === folderId ? { ...d, folderId: null } : d);
+    setDocuments(updatedDocs);
+    localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(updatedDocs));
+
+    if (currentFolderId === folderId) {
+      setCurrentFolderId(null);
+    }
+    setModalType(null);
+    setModalTargetId(null);
+    showToast({ title: "Folder Deleted", description: "Folder was removed successfully.", type: "success" });
+  };
+
+  const triggerDeleteFile = (fileId) => {
+    setModalTargetId(fileId);
+    setModalType("delete_file");
+  };
+
+  const handleConfirmDeleteFile = async () => {
+    const id = modalTargetId;
+    setModalType(null);
+    setModalTargetId(null);
+    try {
+      // Try backend delete
+      await api(`/documents/${id}`, { method: "DELETE" }).catch(() => {});
+
+      if (activePatient?.id) {
+        const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+        const filteredDocs = docs.filter((d) => d.id !== id);
+        localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(filteredDocs));
       }
-      showToast({ title: "Folder Deleted", description: "Folder was removed successfully.", type: "success" });
+
+      const el = document.querySelector(`[data-doc-id="${id}"]`);
+      if (el) {
+        gsap.to(el, {
+          opacity: 0, x: -30, height: 0, padding: 0, margin: 0,
+          duration: 0.3, ease: "power2.in",
+          onComplete: () => setDocuments((prev) => prev.filter((d) => d.id !== id)),
+        });
+      } else {
+        setDocuments((prev) => prev.filter((d) => d.id !== id));
+      }
+      showToast({
+        title: "Document Deleted",
+        type: "success",
+      });
+    } catch (err) {
+      console.error("Delete error:", err);
+      showToast({
+        title: "Delete Failed",
+        description: err.message,
+        type: "error",
+      });
     }
   };
 
@@ -110,6 +272,8 @@ function DocumentLibraryPage() {
     localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(updatedDocs));
     showToast({ title: "Document Moved", type: "success" });
   };
+
+
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -126,74 +290,59 @@ function DocumentLibraryPage() {
   const handleDrop = (e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files); };
   const handleClick = () => fileInputRef.current?.click();
 
-  const uploadFile = (file) => {
-    return new Promise((resolve, reject) => {
-      const fileId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      const ext = file.name.split(".").pop();
-      const filePath = `documents/${activePatient.id}/${fileId}.${ext}`;
-      const storageReference = sRef(storage, filePath);
-      const uploadTask = uploadBytesResumable(storageReference, file);
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("child_id", activePatient.id);
+    if (currentFolderId) formData.append("folder_id", currentFolderId);
+    formData.append("category", "other");
 
-      uploadTask.on(
-        "state_changed",
-        (snapshot) => {
-          const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          setUploadProgress(progress);
-        },
-        (error) => {
-          console.warn("[Storage] Firebase Storage failed, using local object URL fallback:", error.message);
-          const localUrl = URL.createObjectURL(file);
-          const docData = {
-            id: `doc-${Date.now()}`,
-            patientId: activePatient.id,
-            parentUid: auth.currentUser?.uid || "mock-uid",
-            name: file.name,
-            type: file.type || "other",
-            fileUrl: localUrl,
-            size: file.size,
-            size_bytes: file.size,
-            createdAt: new Date().toISOString(),
-            folderId: currentFolderId,
-          };
-          try {
-            const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
-            docs.unshift(docData);
-            localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
-            resolve(docData);
-          } catch (err) {
-            reject(err);
-          }
-        },
-        async () => {
-          try {
-            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-            // Save metadata directly to Firestore and localStorage
-            const docData = {
-              id: `doc-${Date.now()}`,
-              patientId: activePatient.id,
-              parentUid: auth.currentUser?.uid || "",
-              name: file.name,
-              type: file.type || "other",
-              fileUrl: downloadUrl,
-              size: file.size,
-              size_bytes: file.size,
-              createdAt: new Date().toISOString(),
-              folderId: currentFolderId,
-            };
-            const firestoreRef = await addDoc(collection(db, "documents"), docData);
-            const docWithId = { ...docData, id: firestoreRef.id };
-            
-            const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
-            docs.unshift(docWithId);
-            localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
-            
-            resolve(docWithId);
-          } catch (err) {
-            reject(err);
-          }
-        }
-      );
-    });
+    // Simulate progress
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => Math.min(prev + 10, 90));
+    }, 200);
+
+    try {
+      const result = await api("/documents/upload", { method: "POST", body: formData });
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      const docData = {
+        id: result.id || `doc-${Date.now()}`,
+        patientId: activePatient.id,
+        name: file.name,
+        type: file.type || "other",
+        fileUrl: result.fileUrl || "",
+        size: file.size,
+        size_bytes: file.size,
+        createdAt: new Date().toISOString(),
+        folderId: currentFolderId,
+      };
+      // Also save to localStorage as fallback
+      const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+      docs.unshift(docData);
+      localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
+      return docData;
+    } catch (err) {
+      clearInterval(progressInterval);
+      // Fallback: save locally if backend upload fails
+      console.warn("Backend upload failed, saving locally:", err.message);
+      const localUrl = URL.createObjectURL(file);
+      const docData = {
+        id: `doc-${Date.now()}`,
+        patientId: activePatient.id,
+        name: file.name,
+        type: file.type || "other",
+        fileUrl: localUrl,
+        size: file.size,
+        size_bytes: file.size,
+        createdAt: new Date().toISOString(),
+        folderId: currentFolderId,
+      };
+      const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
+      docs.unshift(docData);
+      localStorage.setItem(`documents_${activePatient.id}`, JSON.stringify(docs));
+      return docData;
+    }
   };
 
   const handleFiles = async (files) => {
@@ -227,6 +376,9 @@ function DocumentLibraryPage() {
 
   const handleDelete = async (id) => {
     try {
+      // Try backend delete
+      await api(`/documents/${id}`, { method: "DELETE" }).catch(() => {});
+
       if (activePatient?.id) {
         const docs = JSON.parse(localStorage.getItem(`documents_${activePatient.id}`) || "[]");
         const filteredDocs = docs.filter((d) => d.id !== id);
@@ -269,7 +421,6 @@ function DocumentLibraryPage() {
 
     setGeneratingPdf(true);
     try {
-      // Gather child details and clinical notes directly from localStorage
       const sdqData = JSON.parse(localStorage.getItem(`sdq_${activePatient.id}`) || "[]");
       const visionData = JSON.parse(localStorage.getItem(`vision_${activePatient.id}`) || "[]");
       const milestonesData = JSON.parse(localStorage.getItem(`milestones_${activePatient.id}`) || "[]");
@@ -277,39 +428,35 @@ function DocumentLibraryPage() {
       const sleepData = JSON.parse(localStorage.getItem(`sleep_${activePatient.id}`) || "[]");
 
       const doc = new jsPDF();
-      
-      // Title
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(22);
       doc.text("AURA TRACK CLINICAL REPORT", 20, 25);
-      
-      // Metadata
+
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
       doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 32);
-      
-      // Patient Info
+
       doc.setDrawColor(200, 200, 200);
       doc.line(20, 37, 190, 37);
-      
+
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("Child Profile Information", 20, 45);
-      
+
       doc.setFont("helvetica", "normal");
       doc.text(`Name: ${activePatient.name}`, 20, 52);
       doc.text(`Date of Birth: ${activePatient.dob}`, 20, 59);
       doc.text(`Gender: ${activePatient.sex || "N/A"}`, 20, 66);
-      
+
       let yOffset = 74;
-      
-      // AI Vision Results (YOLOv8)
+
       doc.line(20, yOffset - 3, 190, yOffset - 3);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("YOLOv8 Behavioral Vision Screening Summary", 20, yOffset);
       yOffset += 8;
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       if (visionData && visionData.length > 0) {
@@ -326,8 +473,7 @@ function DocumentLibraryPage() {
         doc.text("No YOLOv8 behavioral vision screening assessments completed yet.", 20, yOffset);
         yOffset += 7;
       }
-      
-      // SDQ Scores
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       doc.line(20, yOffset - 3, 190, yOffset - 3);
@@ -335,14 +481,14 @@ function DocumentLibraryPage() {
       doc.setFontSize(12);
       doc.text("Latest SDQ Assessment Score Summary", 20, yOffset);
       yOffset += 8;
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       if (sdqData && sdqData.length > 0) {
         const latestSdq = sdqData[0];
         const sdqTotalScore = latestSdq.scores?.total !== undefined ? latestSdq.scores.total : latestSdq.scores?.totalDifficulties || 0;
         const sdqRiskLabel = latestSdq.scores?.risk || "normal";
-        
+
         doc.text(`Completed on: ${new Date(latestSdq.createdAt).toLocaleDateString()}`, 20, yOffset);
         yOffset += 7;
         doc.text(`Total Difficulties Score: ${sdqTotalScore}/40 (${sdqRiskLabel} range)`, 20, yOffset);
@@ -354,14 +500,13 @@ function DocumentLibraryPage() {
         doc.text("No Strengths & Difficulties Questionnaire (SDQ) records completed yet.", 20, yOffset);
         yOffset += 7;
       }
-      
-      // Milestones
+
       doc.line(20, yOffset - 3, 190, yOffset - 3);
       doc.setFont("helvetica", "bold");
       doc.setFontSize(12);
       doc.text("Developmental Milestones Logged", 20, yOffset);
       yOffset += 8;
-      
+
       doc.setFont("helvetica", "normal");
       doc.setFontSize(10);
       if (milestonesData && milestonesData.length > 0) {
@@ -375,7 +520,6 @@ function DocumentLibraryPage() {
         yOffset += 7;
       }
 
-      // Download file directly
       doc.save(`AuraTrack_ClinicalReport_${activePatient.name}.pdf`);
 
       setPdfDone(true);
@@ -403,10 +547,11 @@ function DocumentLibraryPage() {
         <button className="p-2 rounded-xl transition-colors hover:bg-white/5" style={{ color: "var(--text-secondary)" }} onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>Document Library</h1>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Upload, manage, and export clinical documents</p>
         </div>
+
       </div>
 
       <div className="doc-section rounded-2xl p-4 border flex items-start gap-3" style={{ background: "linear-gradient(135deg, rgba(59,147,245,0.06), rgba(20,184,166,0.04))", borderColor: "var(--card-border)" }}>
@@ -417,36 +562,7 @@ function DocumentLibraryPage() {
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handleFiles(e.target.files)} accept=".pdf,.png,.jpg,.jpeg,.mp4" />
-
-      <div className="doc-section">
-        <div
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-300 ${dragOver ? "border-blue-500/50 bg-blue-500/5" : ""}`}
-          style={{ borderColor: dragOver ? undefined : "var(--card-border)", background: dragOver ? undefined : "var(--hover-bg)" }}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
-          onClick={handleClick}
-        >
-          {uploading ? (
-            <div className="space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/15 flex items-center justify-center mx-auto">
-                <Upload className="w-6 h-6 text-blue-400 animate-bounce" />
-              </div>
-              <p className="font-medium" style={{ color: "var(--text-primary)" }}>Uploading... {uploadProgress}%</p>
-              <div className="w-48 h-2 rounded-full mx-auto overflow-hidden" style={{ background: "var(--hover-bg)" }}>
-                <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all duration-300" style={{ width: `${uploadProgress}%` }} />
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Upload className="w-8 h-8 mx-auto" style={{ color: "var(--text-muted)" }} />
-              <p className="font-medium" style={{ color: "var(--text-secondary)" }}>Drop files here or click to upload</p>
-              <p className="text-sm" style={{ color: "var(--text-muted)" }}>Supports PDF, PNG, JPG, MP4</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <input ref={fileInputRef} type="file" className="hidden" onChange={(e) => handleFiles(e.target.files)} accept=".pdf,.png,.jpg,.jpeg,.docx" />
 
       <div ref={docsRef} className="doc-section space-y-4">
         {/* Folder Navigation Trail & Actions */}
@@ -468,7 +584,7 @@ function DocumentLibraryPage() {
             )}
           </div>
           <button
-            onClick={handleCreateFolder}
+            onClick={triggerCreateFolder}
             className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold border transition-all hover:bg-blue-500/10 hover:border-blue-500/30 cursor-pointer"
             style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)", color: "var(--text-primary)" }}
           >
@@ -477,14 +593,49 @@ function DocumentLibraryPage() {
         </div>
 
         {/* Contents Grid/List */}
-        <h3 className="font-semibold text-sm mt-4" style={{ color: "var(--text-primary)" }}>
-          {currentFolderId === null ? "Folders & Documents" : `Items in Folder (${documents.filter(d => d.folderId === currentFolderId).length})`}
-        </h3>
+        <div className="flex items-center justify-between mt-4">
+          <h3 className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+            {currentFolderId === null ? "Folders & Documents" : `Items in Folder (${documents.filter(d => d.folderId === currentFolderId).length})`}
+          </h3>
+          <div className="flex items-center gap-2">
+            {uploading ? (
+              <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
+                <Upload className="w-3.5 h-3.5 animate-bounce text-blue-400" />
+                Uploading... {uploadProgress}%
+                <div className="w-20 h-1.5 rounded-full overflow-hidden" style={{ background: "var(--hover-bg)" }}>
+                  <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: `${uploadProgress}%` }} />
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={handleClick}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all hover:bg-blue-500/10 hover:border-blue-500/30 ${dragOver ? "border-blue-500/50 bg-blue-500/5" : ""}`}
+                style={{ background: "var(--hover-bg)", borderColor: "var(--card-border)", color: "var(--text-primary)" }}
+              >
+                <Upload className="w-3.5 h-3.5" /> Upload File
+              </button>
+            )}
+          </div>
+        </div>
 
         {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading documents...</p>
+          <div className="space-y-3 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-4 p-4 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+                <div className="w-10 h-10 rounded-xl flex-shrink-0" style={{ background: "var(--hover-bg)" }} />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-1/3 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                  <div className="h-3 w-1/5 rounded" style={{ background: "var(--hover-bg)" }} />
+                </div>
+                <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-xl" style={{ background: "var(--hover-bg)" }} />
+                  <div className="w-8 h-8 rounded-xl" style={{ background: "var(--hover-bg)" }} />
+                </div>
+              </div>
+            ))}
           </div>
         ) : (
           <div className="space-y-3">
@@ -492,9 +643,10 @@ function DocumentLibraryPage() {
             {currentFolderId === null && folders.map((folder) => (
               <div 
                 key={folder.id}
-                onClick={() => setCurrentFolderId(folder.id)}
+                onDoubleClick={() => setCurrentFolderId(folder.id)}
                 className="flex items-center gap-4 p-4 rounded-2xl border transition-all hover:shadow-md cursor-pointer group"
                 style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+                title="Double-click to open folder"
               >
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-blue-500/10 text-blue-400">
                   <Folder className="w-5 h-5" />
@@ -502,19 +654,19 @@ function DocumentLibraryPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate group-hover:text-blue-400 transition-colors" style={{ color: "var(--text-primary)" }}>{folder.name}</p>
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                    {documents.filter(d => d.folderId === folder.id).length} items
+                    {documents.filter(d => d.folderId === folder.id).length} items &middot; Double-click to open
                   </p>
                 </div>
                 <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                   <button 
-                    onClick={() => handleRenameFolder(folder.id)}
+                    onClick={() => triggerRenameFolder(folder.id)}
                     className="p-2 rounded-xl transition-colors hover:bg-white/5 text-blue-400 bg-transparent border-none cursor-pointer"
                     title="Rename Folder"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button 
-                    onClick={() => handleDeleteFolder(folder.id)}
+                    onClick={() => triggerDeleteFolder(folder.id)}
                     className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400 bg-transparent border-none cursor-pointer"
                     title="Delete Folder"
                   >
@@ -537,7 +689,6 @@ function DocumentLibraryPage() {
                   <p className="text-xs" style={{ color: "var(--text-muted)" }}>{formatSize(doc.size_bytes)}</p>
                 </div>
                 <div className="flex items-center gap-4">
-                  {/* Folder mover select option */}
                   <select
                     value={doc.folderId || ""}
                     onChange={(e) => handleMoveDocument(doc.id, e.target.value || null)}
@@ -559,7 +710,7 @@ function DocumentLibraryPage() {
                   >
                     <Download className="w-4 h-4" />
                   </a>
-                  <button className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400 bg-transparent border-none cursor-pointer" onClick={() => handleDelete(doc.id)}>
+                  <button className="p-2 rounded-xl transition-colors hover:bg-red-500/10 text-red-400 bg-transparent border-none cursor-pointer" onClick={() => triggerDeleteFile(doc.id)}>
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -583,6 +734,102 @@ function DocumentLibraryPage() {
           </div>
         )}
       </div>
+
+      {/* Custom styled validation modal overlay — no browser alert() */}
+      <AnimatePresence>
+        {modalType && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setModalType(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+              >
+                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                  {modalType === "create_folder" && "Create Folder"}
+                  {modalType === "rename_folder" && "Rename Folder"}
+                  {modalType === "delete_folder" && "Delete Folder"}
+                  {modalType === "delete_file" && "Delete Document"}
+
+                </h3>
+
+                {(modalType === "create_folder" || modalType === "rename_folder") && (
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      placeholder="Folder Name"
+                      value={modalInput}
+                      onChange={(e) => {
+                        setModalInput(e.target.value);
+                        setModalError("");
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          if (modalType === "create_folder") handleConfirmCreateFolder();
+                          if (modalType === "rename_folder") handleConfirmRenameFolder();
+                        }
+                      }}
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-neutral-500 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all outline-none"
+                    />
+                    {modalError && (
+                      <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                        <p className="text-xs text-red-400 font-semibold">{modalError}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {modalType === "delete_folder" && (
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    Are you sure you want to delete this folder? Any files contained within will be moved back to the Root Directory.
+                  </p>
+                )}
+
+                {modalType === "delete_file" && (
+                  <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    Are you sure you want to delete this file? This action is permanent.
+                  </p>
+                )}
+
+
+
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setModalType(null)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white transition-all cursor-pointer bg-transparent border-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (modalType === "create_folder") handleConfirmCreateFolder();
+                      if (modalType === "rename_folder") handleConfirmRenameFolder();
+                      if (modalType === "delete_folder") handleConfirmDeleteFolder();
+                      if (modalType === "delete_file") handleConfirmDeleteFile();
+
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

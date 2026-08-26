@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity, Brain, TrendingUp, FileText, Moon,
   ChevronRight, Camera, LayoutGrid, UserPlus, Baby, Calendar,
-  X, Plus, Download, Trash2
+  X, Plus, Download, Trash2, AlertTriangle, Edit2
 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { useAuth } from "../hooks/useAuth";
@@ -16,6 +16,7 @@ import StatCard from "../components/Dashboard/StatCard";
 import RecentActivity from "../components/Dashboard/RecentActivity";
 import GradientButton from "../components/ui/GradientButton";
 import AddChildForm from "../components/forms/AddChildForm";
+import { showToast } from "../components/ui/toast";
 
 function FloatingOrbs() {
   return (
@@ -184,6 +185,16 @@ function DashboardPage() {
   const [latestSdq, setLatestSdq] = useState(null);
   const [latestVision, setLatestVision] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Inline delete confirmation modal state (replaces window.confirm)
+  const [clearModalOpen, setClearModalOpen] = useState(false);
+  const [clearTargetId, setClearTargetId] = useState(null);
+  const [clearTargetName, setClearTargetName] = useState("");
+
+  // Delete child modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTargetName, setDeleteTargetName] = useState("");
 
   useEffect(() => {
     if (!activePatient?.id) {
@@ -667,22 +678,36 @@ function DashboardPage() {
                     </button>
 
                     <button
-                      onClick={async () => {
-                        if (window.confirm(`Are you sure you want to clear all screening assessment data (SDQ and Vision) for ${row.name}? The child profile itself will not be deleted.`)) {
-                          try {
-                            await api(`/sdq/clear/${row.id}`, { method: "DELETE" });
-                          } catch (err) {
-                            console.warn("Backend SDQ clear failed or endpoint not registered:", err);
-                          }
-                          try {
-                            await api(`/vision/clear/${row.id}`, { method: "DELETE" });
-                          } catch (err) {
-                            console.warn("Backend Vision clear failed or endpoint not registered:", err);
-                          }
-                          localStorage.removeItem(`sdq_${row.id}`);
-                          localStorage.removeItem(`vision_${row.id}`);
-                          setRefreshTrigger((prev) => prev + 1);
+                      onClick={() => {
+                        const child = patients.find(p => p.id === row.id);
+                        if (child) {
+                          setEditingChild(child);
+                          setAddChildOpen(true);
                         }
+                      }}
+                      className="p-1 rounded text-blue-400 hover:bg-blue-500/10 transition-colors cursor-pointer bg-transparent border-none"
+                      title="Edit Child Profile"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setDeleteTargetId(row.id);
+                        setDeleteTargetName(row.name);
+                        setDeleteModalOpen(true);
+                      }}
+                      className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent border-none"
+                      title="Delete Child Profile"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setClearTargetId(row.id);
+                        setClearTargetName(row.name);
+                        setClearModalOpen(true);
                       }}
                       className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent border-none"
                       title="Clear Assessment History"
@@ -753,6 +778,135 @@ function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Delete Child Confirmation Modal (replaces window.confirm) */}
+      <AnimatePresence>
+        {deleteModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setDeleteModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-red-500/15 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Delete Child Profile</h3>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  Are you sure you want to delete <span className="font-semibold text-white">{deleteTargetName}</span>? This will permanently remove all their data including assessments, health records, and documents.
+                </p>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setDeleteModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white transition-all cursor-pointer bg-transparent border-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await deleteChild(deleteTargetId);
+                        showToast({ title: "Child Deleted", description: `${deleteTargetName} has been removed.`, type: "success" });
+                      } catch (err) {
+                        showToast({ title: "Delete Failed", description: err.message, type: "error" });
+                      }
+                      setDeleteModalOpen(false);
+                      setDeleteTargetId(null);
+                      setDeleteTargetName("");
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
+                  >
+                    Delete Permanently
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Inline Clear Assessment Confirmation Modal (replaces window.confirm) */}
+      <AnimatePresence>
+        {clearModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setClearModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 bg-red-500/15">
+                    <AlertTriangle className="w-5 h-5 text-red-400" />
+                  </div>
+                  <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Clear Assessment Data</h3>
+                </div>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  Are you sure you want to clear all screening assessment data (SDQ and Vision) for <span className="font-semibold text-white">{clearTargetName}</span>? The child profile itself will not be deleted.
+                </p>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setClearModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white transition-all cursor-pointer bg-transparent border-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setClearModalOpen(false);
+                      try {
+                        await api(`/sdq/clear/${clearTargetId}`, { method: "DELETE" });
+                      } catch (err) {
+                        console.warn("Backend SDQ clear failed or endpoint not registered:", err);
+                      }
+                      try {
+                        await api(`/vision/clear/${clearTargetId}`, { method: "DELETE" });
+                      } catch (err) {
+                        console.warn("Backend Vision clear failed or endpoint not registered:", err);
+                      }
+                      localStorage.removeItem(`sdq_${clearTargetId}`);
+                      localStorage.removeItem(`vision_${clearTargetId}`);
+                      setRefreshTrigger((prev) => prev + 1);
+                      setClearTargetId(null);
+                      setClearTargetName("");
+                    }}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
+                  >
+                    Clear Data
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -10,6 +10,8 @@ from .routers.milestones import milestones_blueprint
 from .routers.documents import documents_blueprint
 from .routers.vision import vision_blueprint
 from .routers.ai import ai_blueprint
+from .routers.events import events_blueprint
+from .routers.health import health_blueprint
 from .db import ping_db
 
 app = Flask(
@@ -52,3 +54,5 @@ app.register_blueprint(milestones_blueprint, url_prefix="/api")
 app.register_blueprint(documents_blueprint, url_prefix="/api")
 app.register_blueprint(vision_blueprint, url_prefix="/api")
 app.register_blueprint(ai_blueprint, url_prefix="/api")
+app.register_blueprint(events_blueprint, url_prefix="/api")
+app.register_blueprint(health_blueprint, url_prefix="/api")

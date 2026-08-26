@@ -1,4 +1,4 @@
-"""Authentication routes utilizing MongoDB, JWT tokens, and Google verification (Flask Blueprint version)."""
+"""Authentication routes utilizing Firebase Firestore, JWT tokens, and Google verification (Flask Blueprint version)."""
 import uuid
 import secrets
 from datetime import datetime, timezone, timedelta
@@ -19,7 +19,7 @@ auth_blueprint = Blueprint("auth", __name__)
 OTP_STORE = {}
 
 def _public_user(user_doc: dict) -> dict:
-    """Helper to convert MongoDB user document to public format."""
+    """Helper to convert Firestore user document to public format."""
     return {
         "id": user_doc["id"],
         "name": user_doc["name"],
@@ -59,7 +59,7 @@ async def register():
         "created_at": created,
     }
     
-    # Save to MongoDB
+    # Save to Firestore
     await db.users.insert_one(user_data)
     
     token = create_access_token(user_id, email)

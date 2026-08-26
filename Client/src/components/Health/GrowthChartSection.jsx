@@ -1,4 +1,4 @@
-import { Plus, X, BarChart2 } from "lucide-react";
+import { Plus, X, BarChart2, Edit2, Trash2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -7,9 +7,7 @@ const CustomTooltip = ({ active, payload, label }) => {
       <div className="px-3 py-2 text-sm rounded-xl" style={{ background: "var(--card-bg)", border: "1px solid var(--card-border)" }}>
         <p className="text-xs mb-1" style={{ color: "var(--text-muted)" }}>{label}</p>
         {payload.map((p) => (
-          <p key={p.name} style={{ color: p.color }}>
-            {p.name}: {p.value}
-          </p>
+          <p key={p.name} style={{ color: p.color }}>{p.name}: {p.value}</p>
         ))}
       </div>
     );
@@ -17,9 +15,9 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
-export default function GrowthChartSection({ growthLogs, showForm, form, onFormChange, onSave, onToggleForm, saving }) {
+export default function GrowthChartSection({ growthLogs, showForm, form, onFormChange, onSave, onToggleForm, saving, onEdit, onDelete }) {
   const chartData = growthLogs.map((l, i) => ({
-    name: "Log " + (i + 1),
+    name: l.date ? new Date(l.date).toLocaleDateString() : "Log " + (i + 1),
     Weight: l.weight_kg,
     Height: l.height_cm,
   }));
@@ -31,11 +29,8 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
           <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>Growth Chart</h3>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Weight and height over time</p>
         </div>
-        <button
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-          onClick={onToggleForm}
-        >
+        <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }} onClick={onToggleForm}>
           <Plus className="w-4 h-4" /> Log Measurement
         </button>
       </div>
@@ -44,36 +39,20 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
         <div className="p-5 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
           <div className="flex items-center justify-between mb-4">
             <h4 className="font-medium" style={{ color: "var(--text-primary)" }}>New Measurement</h4>
-            <button className="p-1 rounded-lg transition-colors hover:bg-white/5" style={{ color: "var(--text-muted)" }} onClick={onToggleForm}>
-              <X className="w-4 h-4" />
-            </button>
+            <button className="p-1 rounded-lg transition-colors hover:bg-white/5" style={{ color: "var(--text-muted)" }} onClick={onToggleForm}><X className="w-4 h-4" /></button>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { key: "weight_kg", label: "Weight (kg)", placeholder: "8.5" },
-              { key: "height_cm", label: "Height (cm)", placeholder: "72" },
-              { key: "head_cm", label: "Head circ. (cm)", placeholder: "46" },
-            ].map((f) => (
+            {[{ key: "weight_kg", label: "Weight (kg)", placeholder: "8.5" }, { key: "height_cm", label: "Height (cm)", placeholder: "72" }, { key: "head_cm", label: "Head circ. (cm)", placeholder: "46" }].map((f) => (
               <div key={f.key}>
                 <label className="block text-xs mb-1.5" style={{ color: "var(--text-secondary)" }}>{f.label}</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-all"
+                <input type="number" step="0.1" className="w-full px-3 py-2 rounded-xl text-sm outline-none transition-all"
                   style={{ background: "var(--hover-bg)", color: "var(--text-primary)", border: "1px solid var(--card-border)" }}
-                  placeholder={f.placeholder}
-                  value={form[f.key]}
-                  onChange={(e) => onFormChange(f.key, e.target.value)}
-                />
+                  placeholder={f.placeholder} value={form[f.key]} onChange={(e) => onFormChange(f.key, e.target.value)} />
               </div>
             ))}
           </div>
-          <button
-            className="mt-4 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
-            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-            onClick={onSave}
-            disabled={saving}
-          >
+          <button className="mt-4 px-5 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40"
+            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }} onClick={onSave} disabled={saving}>
             {saving ? "Saving..." : "Save Measurement"}
           </button>
         </div>
@@ -105,12 +84,18 @@ export default function GrowthChartSection({ growthLogs, showForm, form, onFormC
             <h4 className="font-medium text-sm" style={{ color: "var(--text-primary)" }}>Measurement History</h4>
           </div>
           <div>
-            {[...growthLogs].reverse().map((log, idx) => (
-              <div key={log.id} className="px-5 py-3 flex items-center gap-6 text-sm" style={idx < growthLogs.length - 1 ? { borderBottom: "1px solid var(--card-border)" } : {}}>
-                <span className="text-xs" style={{ color: "var(--text-muted)" }}>{new Date(log.recorded_at).toLocaleDateString()}</span>
-                {log.weight_kg && <span style={{ color: "var(--text-primary)" }}>{log.weight_kg} <span style={{ color: "var(--text-muted)" }}>kg</span></span>}
-                {log.height_cm && <span style={{ color: "var(--text-primary)" }}>{log.height_cm} <span style={{ color: "var(--text-muted)" }}>cm</span></span>}
-                {log.head_cm && <span style={{ color: "var(--text-primary)" }}>{log.head_cm} <span style={{ color: "var(--text-muted)" }}>cm HC</span></span>}
+            {growthLogs.map((log, idx) => (
+              <div key={log.id} className="px-5 py-3 flex items-center gap-4 text-sm" style={idx < growthLogs.length - 1 ? { borderBottom: "1px solid var(--card-border)" } : {}}>
+                <span className="text-xs flex-shrink-0" style={{ color: "var(--text-muted)" }}>{new Date(log.created_at || log.date).toLocaleDateString()}</span>
+                <div className="flex-1 flex items-center gap-4">
+                  {log.weight_kg && <span style={{ color: "var(--text-primary)" }}>{log.weight_kg} <span style={{ color: "var(--text-muted)" }}>kg</span></span>}
+                  {log.height_cm && <span style={{ color: "var(--text-primary)" }}>{log.height_cm} <span style={{ color: "var(--text-muted)" }}>cm</span></span>}
+                  {log.head_cm && <span style={{ color: "var(--text-primary)" }}>{log.head_cm} <span style={{ color: "var(--text-muted)" }}>cm HC</span></span>}
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => onEdit?.(log)} className="p-1.5 rounded-lg hover:bg-white/5 text-neutral-400 hover:text-blue-400 transition-colors" title="Edit"><Edit2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => onDelete?.(log.id)} className="p-1.5 rounded-lg hover:bg-red-500/10 text-neutral-400 hover:text-red-400 transition-colors" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
               </div>
             ))}
           </div>

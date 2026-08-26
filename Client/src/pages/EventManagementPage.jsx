@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
-import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Tag, Plus, Edit2, Trash2, Bell, Share2, Check, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Calendar as CalendarIcon, Clock, MapPin, Plus, Edit2, Trash2, Bell, Mail } from "lucide-react";
 import { usePatients } from "../hooks/usePatients";
+import { useAuth } from "../hooks/useAuth";
 import { showToast } from "../components/ui/toast";
+import { api } from "../lib/api";
 
 const CATEGORIES = [
   { id: "appointments", label: "Appointments", color: "#3b93f5", bg: "rgba(59, 147, 245, 0.15)" },
@@ -14,14 +17,28 @@ const CATEGORIES = [
   { id: "others", label: "Others", color: "#64748b", bg: "rgba(100, 116, 139, 0.15)" },
 ];
 
+const REMINDER_OPTIONS = [
+  { value: "5", label: "5 minutes before" },
+  { value: "15", label: "15 minutes before" },
+  { value: "30", label: "30 minutes before" },
+  { value: "60", label: "1 hour before" },
+  { value: "1440", label: "1 day before" },
+];
+
 export default function EventManagementPage() {
   const navigate = useNavigate();
   const { activePatient } = usePatients();
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState("all");
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEventId, setEditingEventId] = useState(null);
+
+  // Delete confirmation modal (replaces window.confirm)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState(null);
+  const [deleteTargetTitle, setDeleteTargetTitle] = useState("");
 
   const [form, setForm] = useState({
     title: "",
@@ -32,33 +49,52 @@ export default function EventManagementPage() {
     endTime: "",
     location: "",
     description: "",
-    reminderMinutes: "15",
+    reminderMinutes: "60",
   });
 
   const containerRef = useRef(null);
 
-  // Load events
+  // Load events from backend (Firestore) with localStorage fallback
   useEffect(() => {
     if (!activePatient?.id) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    try {
-      const data = JSON.parse(localStorage.getItem(`events_${activePatient.id}`) || "[]");
-      // Sort by start date + time ascending
-      const sorted = data.sort((a, b) => {
-        const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);
-        const dtB = new Date(`${b.startDate}T${b.startTime || "00:00"}`);
-        return dtA - dtB;
-      });
-      setEvents(sorted);
-    } catch (err) {
-      console.error("Failed to load events:", err);
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
+
+    const loadEvents = async () => {
+      try {
+        const backendEvents = await api("/events");
+        if (Array.isArray(backendEvents)) {
+          const sorted = backendEvents.sort((a, b) => {
+            const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);
+            const dtB = new Date(`${b.startDate}T${b.startTime || "00:00"}`);
+            return dtA - dtB;
+          });
+          setEvents(sorted);
+          localStorage.setItem(`events_${activePatient.id}`, JSON.stringify(sorted));
+        } else {
+          throw new Error("Invalid response");
+        }
+      } catch (err) {
+        console.warn("Backend events fetch failed, using localStorage:", err.message);
+        try {
+          const data = JSON.parse(localStorage.getItem(`events_${activePatient.id}`) || "[]");
+          const sorted = data.sort((a, b) => {
+            const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);
+            const dtB = new Date(`${b.startDate}T${b.startTime || "00:00"}`);
+            return dtA - dtB;
+          });
+          setEvents(sorted);
+        } catch (localErr) {
+          setEvents([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadEvents();
   }, [activePatient?.id]);
 
   useEffect(() => {
@@ -69,14 +105,7 @@ export default function EventManagementPage() {
     return () => ctx.revert();
   }, []);
 
-  const requestNotificationPermission = async () => {
-    if (!("Notification" in window)) return;
-    if (Notification.permission === "default") {
-      await Notification.requestPermission();
-    }
-  };
-
-  const handleSaveEvent = (e) => {
+  const handleSaveEvent = async (e) => {
     e.preventDefault();
     if (!activePatient?.id) return;
     if (!form.title.trim()) {
@@ -89,12 +118,7 @@ export default function EventManagementPage() {
     }
 
     try {
-      requestNotificationPermission();
-
-      let updatedEvents = [];
-      const newEvent = {
-        id: editingEventId || `event-${Date.now()}`,
-        patientId: activePatient.id,
+      const eventData = {
         title: form.title.trim(),
         category: form.category,
         startDate: form.startDate,
@@ -103,29 +127,50 @@ export default function EventManagementPage() {
         endTime: form.endTime || form.startTime,
         location: form.location.trim(),
         description: form.description.trim(),
-        reminderMinutes: parseInt(form.reminderMinutes) || 15,
-        updatedAt: new Date().toISOString(),
+        reminder_minutes: parseInt(form.reminderMinutes) || 60,
       };
 
+      let savedEvent;
       if (editingEventId) {
-        updatedEvents = events.map(ev => ev.id === editingEventId ? newEvent : ev);
-        showToast({ title: "Event Updated", description: `"${newEvent.title}" has been saved.`, type: "success" });
+        savedEvent = await api(`/events/${editingEventId}`, {
+          method: "PATCH",
+          body: JSON.stringify(eventData),
+        });
+        showToast({ title: "Event Updated", description: `"${eventData.title}" has been saved. Email reminder scheduled.`, type: "success" });
       } else {
-        updatedEvents = [...events, newEvent];
-        showToast({ title: "Event Logged", description: `"${newEvent.title}" has been scheduled.`, type: "success" });
+        savedEvent = await api("/events", {
+          method: "POST",
+          body: JSON.stringify(eventData),
+        });
+        const reminderLabel = REMINDER_OPTIONS.find(o => o.value === String(eventData.reminder_minutes))?.label || "1 hour before";
+        showToast({ title: "Event Logged", description: `"${eventData.title}" has been scheduled. Email reminder: ${reminderLabel}.`, type: "success" });
       }
 
-      // Sort
-      updatedEvents.sort((a, b) => {
-        const dtA = new Date(`${a.startDate}T${a.startTime}`);
-        const dtB = new Date(`${b.startDate}T${b.startTime}`);
-        return dtA - dtB;
-      });
+      // Refresh events list from backend
+      try {
+        const refreshed = await api("/events");
+        if (Array.isArray(refreshed)) {
+          const sorted = refreshed.sort((a, b) => {
+            const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);
+            const dtB = new Date(`${b.startDate}T${b.startTime || "00:00"}`);
+            return dtA - dtB;
+          });
+          setEvents(sorted);
+          localStorage.setItem(`events_${activePatient.id}`, JSON.stringify(sorted));
+        }
+      } catch (refreshErr) {
+        // Fallback: add/update locally
+        if (editingEventId) {
+          setEvents(prev => prev.map(ev => ev.id === editingEventId ? savedEvent : ev));
+        } else {
+          setEvents(prev => [...prev, savedEvent].sort((a, b) => {
+            const dtA = new Date(`${a.startDate}T${a.startTime}`);
+            const dtB = new Date(`${b.startDate}T${b.startTime}`);
+            return dtA - dtB;
+          }));
+        }
+      }
 
-      setEvents(updatedEvents);
-      localStorage.setItem(`events_${activePatient.id}`, JSON.stringify(updatedEvents));
-
-      // Reset form
       setForm({
         title: "",
         category: "appointments",
@@ -135,7 +180,7 @@ export default function EventManagementPage() {
         endTime: "",
         location: "",
         description: "",
-        reminderMinutes: "15",
+        reminderMinutes: "60",
       });
       setShowEventForm(false);
       setEditingEventId(null);
@@ -154,42 +199,57 @@ export default function EventManagementPage() {
       startTime: ev.startTime,
       endDate: ev.endDate,
       endTime: ev.endTime,
-      location: ev.location,
-      description: ev.description,
-      reminderMinutes: String(ev.reminderMinutes),
+      location: ev.location || "",
+      description: ev.description || "",
+      reminderMinutes: String(ev.reminder_minutes || ev.reminderMinutes || 60),
     });
     setShowEventForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleDeleteEvent = (eventId) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      const updated = events.filter(ev => ev.id !== eventId);
-      setEvents(updated);
-      localStorage.setItem(`events_${activePatient.id}`, JSON.stringify(updated));
-      showToast({ title: "Event Deleted", type: "success" });
+  // Delete confirmation using inline modal (no window.confirm)
+  const triggerDeleteEvent = (eventId, eventTitle) => {
+    setDeleteTargetId(eventId);
+    setDeleteTargetTitle(eventTitle);
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDeleteEvent = async () => {
+    const id = deleteTargetId;
+    setDeleteModalOpen(false);
+    setDeleteTargetId(null);
+    setDeleteTargetTitle("");
+
+    try {
+      await api(`/events/${id}`, { method: "DELETE" });
+    } catch (err) {
+      console.warn("Backend delete failed, updating locally:", err.message);
     }
+
+    setEvents(prev => prev.filter(ev => ev.id !== id));
+    if (activePatient?.id) {
+      const remaining = events.filter(ev => ev.id !== id);
+      localStorage.setItem(`events_${activePatient.id}`, JSON.stringify(remaining));
+    }
+    showToast({ title: "Event Deleted", type: "success" });
   };
 
-  const getGoogleCalendarLink = (ev) => {
-    // Dates formatted: YYYYMMDDTHHmmSSZ
-    const getGCalDate = (dateStr, timeStr) => {
-      const d = new Date(`${dateStr}T${timeStr || "00:00"}`);
-      return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-    };
-
-    const start = getGCalDate(ev.startDate, ev.startTime);
-    const end = getGCalDate(ev.endDate || ev.startDate, ev.endTime || ev.startTime);
-    
-    return `https://www.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${start}/${end}&details=${encodeURIComponent(ev.description || "")}&location=${encodeURIComponent(ev.location || "")}`;
-  };
-
-  const filteredEvents = filterCategory === "all" 
-    ? events 
+  const filteredEvents = filterCategory === "all"
+    ? events
     : events.filter(e => e.category === filterCategory);
 
   const getCategoryTheme = (catId) => {
     return CATEGORIES.find(c => c.id === catId) || CATEGORIES[CATEGORIES.length - 1];
+  };
+
+  const isEventPast = (ev) => {
+    const eventDateTime = new Date(`${ev.startDate}T${ev.endTime || ev.startTime || "23:59"}`);
+    return eventDateTime < new Date();
+  };
+
+  const getReminderLabel = (minutes) => {
+    const option = REMINDER_OPTIONS.find(o => o.value === String(minutes));
+    return option ? option.label : `${minutes} minutes before`;
   };
 
   return (
@@ -205,27 +265,29 @@ export default function EventManagementPage() {
             <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{activePatient?.name} &middot; Developmental Scheduler & Calendar</p>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditingEventId(null);
-            setForm({
-              title: "",
-              category: "appointments",
-              startDate: "",
-              startTime: "",
-              endDate: "",
-              endTime: "",
-              location: "",
-              description: "",
-              reminderMinutes: "15",
-            });
-            setShowEventForm(p => !p);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer"
-          style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
-        >
-          <Plus className="w-4 h-4" /> Schedule Event
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setEditingEventId(null);
+              setForm({
+                title: "",
+                category: "appointments",
+                startDate: "",
+                startTime: "",
+                endDate: "",
+                endTime: "",
+                location: "",
+                description: "",
+                reminderMinutes: "60",
+              });
+              setShowEventForm(p => !p);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-lg cursor-pointer"
+            style={{ background: "linear-gradient(135deg, #3b93f5, #14b8a6)" }}
+          >
+            <Plus className="w-4 h-4" /> Schedule Event
+          </button>
+        </div>
       </div>
 
       {/* Event Add/Edit Form */}
@@ -307,18 +369,15 @@ export default function EventManagementPage() {
               />
             </div>
             <div className="space-y-1">
-              <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Reminder Notification</label>
+              <label className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>Email Reminder</label>
               <select
                 value={form.reminderMinutes}
                 onChange={(e) => setForm({ ...form, reminderMinutes: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-neutral-900 border border-white/10 text-white focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all outline-none"
               >
-                <option value="0" className="bg-neutral-800">At time of event</option>
-                <option value="5" className="bg-neutral-800">5 minutes before</option>
-                <option value="15" className="bg-neutral-800">15 minutes before</option>
-                <option value="30" className="bg-neutral-800">30 minutes before</option>
-                <option value="60" className="bg-neutral-800">1 hour before</option>
-                <option value="1440" className="bg-neutral-800">1 day before</option>
+                {REMINDER_OPTIONS.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-neutral-800">{opt.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -337,10 +396,7 @@ export default function EventManagementPage() {
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
-              onClick={() => {
-                setShowEventForm(false);
-                setEditingEventId(null);
-              }}
+              onClick={() => { setShowEventForm(false); setEditingEventId(null); }}
               className="px-5 py-2.5 rounded-xl text-sm font-medium text-neutral-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer bg-transparent border-none"
             >
               Cancel
@@ -389,9 +445,25 @@ export default function EventManagementPage() {
       {/* Events Listings */}
       <div className="event-content space-y-4">
         {loading ? (
-          <div className="text-center py-12">
-            <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
-            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Loading scheduled events...</p>
+          <div className="space-y-4 animate-pulse">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="p-5 rounded-2xl border border-l-[6px] space-y-3" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)", borderLeftColor: "var(--card-border)" }}>
+                  <div className="flex items-center justify-between">
+                    <div className="h-5 w-20 rounded-full" style={{ background: "var(--hover-bg)" }} />
+                    <div className="flex gap-1">
+                      <div className="w-7 h-7 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                      <div className="w-7 h-7 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                    </div>
+                  </div>
+                  <div className="h-5 w-3/4 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                  <div className="space-y-1.5">
+                    <div className="h-3 w-1/2 rounded" style={{ background: "var(--hover-bg)" }} />
+                    <div className="h-3 w-2/5 rounded" style={{ background: "var(--hover-bg)" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         ) : filteredEvents.length === 0 ? (
           <div className="text-center py-12 rounded-2xl border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
@@ -402,10 +474,11 @@ export default function EventManagementPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredEvents.map((ev) => {
               const theme = getCategoryTheme(ev.category);
+              const past = isEventPast(ev);
               return (
                 <div
                   key={ev.id}
-                  className="p-5 rounded-2xl border relative flex flex-col justify-between hover:shadow-md transition-all duration-300 border-l-[6px]"
+                  className={`p-5 rounded-2xl border relative flex flex-col justify-between hover:shadow-md transition-all duration-300 border-l-[6px] ${past ? "opacity-60" : ""}`}
                   style={{
                     background: "var(--card-bg)",
                     borderColor: "var(--card-border)",
@@ -413,21 +486,11 @@ export default function EventManagementPage() {
                   }}
                 >
                   <div>
-                    {/* Category tag */}
                     <div className="flex items-center justify-between gap-4 mb-2">
                       <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: theme.bg, color: theme.color }}>
                         {theme.label}
                       </span>
                       <div className="flex items-center gap-1">
-                        <a
-                          href={getGoogleCalendarLink(ev)}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="p-1 rounded text-neutral-400 hover:text-white hover:bg-white/5 transition-colors"
-                          title="Sync to Google Calendar"
-                        >
-                          <Share2 className="w-4 h-4" />
-                        </a>
                         <button
                           onClick={() => handleEditClick(ev)}
                           className="p-1 rounded text-neutral-400 hover:text-white hover:bg-white/5 transition-colors bg-transparent border-none cursor-pointer"
@@ -436,7 +499,7 @@ export default function EventManagementPage() {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteEvent(ev.id)}
+                          onClick={() => triggerDeleteEvent(ev.id, ev.title)}
                           className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors bg-transparent border-none cursor-pointer"
                           title="Delete Event"
                         >
@@ -462,12 +525,13 @@ export default function EventManagementPage() {
                           <span>{ev.location}</span>
                         </div>
                       )}
-                      {ev.reminderMinutes !== 0 && (
-                        <div className="flex items-center gap-1.5 text-[10px] text-blue-400 font-medium">
-                          <Bell className="w-3.5 h-3.5" />
-                          <span>Notification scheduled {ev.reminderMinutes}m before</span>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] text-blue-400 font-medium">
+                        <Mail className="w-3.5 h-3.5" />
+                        <span>Email reminder {getReminderLabel(ev.reminder_minutes || ev.reminderMinutes || 60)}</span>
+                        {ev.reminder_sent && (
+                          <span className="text-green-400 ml-1">(sent)</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -482,6 +546,52 @@ export default function EventManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal (replaces window.confirm) */}
+      <AnimatePresence>
+        {deleteModalOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+              onClick={() => setDeleteModalOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div
+                className="w-full max-w-md rounded-2xl border shadow-2xl p-6 space-y-4"
+                style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}
+              >
+                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Delete Event</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                  Are you sure you want to delete <span className="font-semibold text-white">"{deleteTargetTitle}"</span>? This action cannot be undone.
+                </p>
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    onClick={() => setDeleteModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-neutral-400 hover:text-white transition-all cursor-pointer bg-transparent border-none"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmDeleteEvent}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+                    style={{ background: "linear-gradient(135deg, #ef4444, #dc2626)" }}
+                  >
+                    Delete Event
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

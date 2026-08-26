@@ -139,14 +139,16 @@ export function VercelV0Chat() {
                     </div>
                 ))}
                 {sending && (
-                    <div className="flex items-start gap-4 max-w-[80%] mr-auto">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 border bg-teal-500/15 text-teal-400 border-teal-500/20">
-                            <Bot className="w-4 h-4 animate-pulse" />
-                        </div>
-                        <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed border bg-white/[0.02] text-neutral-400 border-white/[0.08] flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                            <span className="w-1.5 h-1.5 bg-neutral-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <div className="space-y-3 animate-pulse">
+                        <div className="flex items-start gap-4 max-w-[80%] mr-auto">
+                            <div className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 border bg-teal-500/15 text-teal-400 border-teal-500/20">
+                                <Bot className="w-4 h-4" />
+                            </div>
+                            <div className="rounded-2xl px-4 py-3 border bg-white/[0.02] border-white/[0.08] space-y-2">
+                                <div className="h-3 w-64 rounded" style={{ background: "var(--hover-bg)" }} />
+                                <div className="h-3 w-48 rounded" style={{ background: "var(--hover-bg)" }} />
+                                <div className="h-3 w-56 rounded" style={{ background: "var(--hover-bg)" }} />
+                            </div>
                         </div>
                     </div>
                 )}

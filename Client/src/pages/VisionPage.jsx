@@ -166,14 +166,44 @@ function VisionPage() {
       </div>
 
       {processing && (
-        <div className="rounded-2xl p-6 text-center border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
-            <Sparkles className="absolute inset-0 m-auto w-6 h-6 text-blue-400" />
+        <div className="space-y-4 animate-pulse">
+          <div className="rounded-2xl p-6 text-center border" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <div className="relative w-16 h-16 mx-auto mb-4">
+              <div className="absolute inset-0 rounded-full border-2 border-blue-500/20" />
+              <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-500 animate-spin" />
+              <Sparkles className="absolute inset-0 m-auto w-6 h-6 text-blue-400" />
+            </div>
+            <p className="font-medium" style={{ color: "var(--text-primary)" }}>Processing through YOLOv8 pipeline...</p>
+            <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>Extracting facial and behavioral features</p>
           </div>
-          <p className="font-medium" style={{ color: "var(--text-primary)" }}>Processing through YOLOv8 pipeline...</p>
-          <p className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>Extracting facial and behavioral features</p>
+          <div className="rounded-2xl p-6 border space-y-4" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="h-5 w-40 rounded-lg" style={{ background: "var(--hover-bg)" }} />
+                <div className="h-3 w-56 rounded" style={{ background: "var(--hover-bg)" }} />
+              </div>
+              <div className="h-7 w-24 rounded-full" style={{ background: "var(--hover-bg)" }} />
+            </div>
+            <div className="space-y-3">
+              <div className="h-4 w-32 rounded" style={{ background: "var(--hover-bg)" }} />
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-4 p-3 rounded-xl border" style={{ borderColor: "var(--card-border)" }}>
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--hover-bg)" }} />
+                  <div className="h-3 flex-1 rounded" style={{ background: "var(--hover-bg)" }} />
+                  <div className="w-24 h-2 rounded-full" style={{ background: "var(--hover-bg)" }} />
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-40 rounded" style={{ background: "var(--hover-bg)" }} />
+              <div className="flex gap-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-7 w-28 rounded-full" style={{ background: "var(--hover-bg)" }} />
+                ))}
+              </div>
+            </div>
+            <div className="h-20 rounded-xl" style={{ background: "var(--hover-bg)" }} />
+          </div>
         </div>
       )}
 
