@@ -99,13 +99,17 @@ def _send_event_email(event_doc: dict):
 
 @events_blueprint.route("/events", methods=["GET"])
 async def list_events():
-    """List all events for the authenticated user."""
+    """List all events for the authenticated user filtered by child_id."""
     user_id = get_current_user_id()
     if not user_id:
         return jsonify({"detail": "Authentication required."}), 401
 
+    child_id = request.args.get("child_id")
+    if not child_id:
+        return jsonify({"detail": "child_id parameter is required."}), 400
+
     try:
-        events = await db.events.find({"user_id": user_id})
+        events = await db.events.find({"user_id": user_id, "child_id": child_id})
         events.sort(key=lambda e: e.get("startDate", "") + " " + e.get("startTime", "00:00"))
         return jsonify(events), 200
     except Exception as e:
@@ -122,8 +126,18 @@ async def create_event():
 
     body = request.get_json() or {}
     title = (body.get("title") or "").strip()
+    child_id = body.get("child_id")
     if not title:
         return jsonify({"detail": "Event title is required."}), 400
+    if not child_id:
+        return jsonify({"detail": "child_id is required."}), 400
+
+    # Verify child ownership
+    child = await db.patients.find_one({"id": child_id})
+    if not child:
+        return jsonify({"detail": "Child profile not found."}), 404
+    if child.get("parent_id") != user_id:
+        return jsonify({"detail": "Permission denied."}), 403
 
     start_date = body.get("startDate") or body.get("start_date", "")
     start_time = body.get("startTime") or body.get("start_time", "")
@@ -134,6 +148,7 @@ async def create_event():
     event_data = {
         "id": event_id,
         "user_id": user_id,
+        "child_id": child_id,
         "title": title,
         "category": body.get("category", "appointments"),
         "startDate": start_date,

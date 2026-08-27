@@ -157,6 +157,19 @@ class FirestoreCollectionProxy:
         val = filter_dict[key]
         docs = await query_collection(self.collection_id, key, val)
 
+        # Post-filter in memory for all keys in filter_dict to support compound filters
+        if filter_dict:
+            filtered_docs = []
+            for doc in docs:
+                match = True
+                for k, v in filter_dict.items():
+                    if doc.get(k) != v:
+                        match = False
+                        break
+                if match:
+                    filtered_docs.append(doc)
+            docs = filtered_docs
+
         sort_args = kwargs.get("sort")
         if sort_args and isinstance(sort_args, list):
             for field, order in reversed(sort_args):

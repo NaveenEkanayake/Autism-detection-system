@@ -1,6 +1,6 @@
 # server/app/models/sdq_scoring.py
 
-REVERSED_ITEMS = {1, 2, 3, 4, 5, 6, 8, 9, 12, 13}
+REVERSED_ITEMS = {6, 8, 9, 12, 13}
 
 QUESTION_SCALES = {
     1: "prosocial",
@@ -64,11 +64,11 @@ def score_sdq(responses):
 
     total = subscales["emotional"] + subscales["conduct"] + subscales["hyperactivity"] + subscales["peer"]
     
-    # Classify band (Clinical is total >= 8 points, Borderline is total >= 6 points)
-    if total >= 8:
+    # Classify band (Clinical is total >= 20 points, Borderline is total >= 15 points)
+    if total >= 20:
         band = "very_high"
         is_clinical_range = True
-    elif total >= 6:
+    elif total >= 15:
         band = "slightly_raised"
         is_clinical_range = False
     else:

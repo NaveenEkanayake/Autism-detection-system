@@ -64,7 +64,7 @@ export default function EventManagementPage() {
 
     const loadEvents = async () => {
       try {
-        const backendEvents = await api("/events");
+        const backendEvents = await api(`/events?child_id=${activePatient.id}`);
         if (Array.isArray(backendEvents)) {
           const sorted = backendEvents.sort((a, b) => {
             const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);
@@ -128,6 +128,7 @@ export default function EventManagementPage() {
         location: form.location.trim(),
         description: form.description.trim(),
         reminder_minutes: 0,
+        child_id: activePatient.id,
       };
 
       let savedEvent;
@@ -147,7 +148,7 @@ export default function EventManagementPage() {
 
       // Refresh events list from backend
       try {
-        const refreshed = await api("/events");
+        const refreshed = await api(`/events?child_id=${activePatient.id}`);
         if (Array.isArray(refreshed)) {
           const sorted = refreshed.sort((a, b) => {
             const dtA = new Date(`${a.startDate}T${a.startTime || "00:00"}`);

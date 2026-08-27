@@ -165,7 +165,7 @@ function RiskDonutChart({ patient, latestSdq, latestVision, loading, onDownloadP
 
 function DashboardPage() {
   const { user } = useAuth();
-  const { patients, activePatient, setActivePatient, deleteChild, getAgeLabel, setAddChildOpen, setEditingChild } = usePatients();
+  const { patients, activePatient, setActivePatient, deleteChild, getAgeLabel, setAddChildOpen, setEditingChild, loading: patientsLoading } = usePatients();
   const navigate = useNavigate();
   const ageLabel = activePatient ? getAgeLabel(activePatient.dob) : "";
   const containerRef = useRef(null);
@@ -465,40 +465,7 @@ function DashboardPage() {
     return () => ctx.revert();
   }, []);
 
-  if (!activePatient) {
-    return (
-      <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <FloatingOrbs />
-        <div ref={headerRef}>
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-cyan-400" />
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
-                  Dashboard
-                </h1>
-              </div>
-              <p className="text-sm ml-4" style={{ color: "var(--text-secondary)" }}>
-                Welcome back, {user?.name || "User"}
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-2xl mx-auto mt-12 border rounded-3xl p-6" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
-          <EmptyState onOpenModal={() => { setEditingChild(null); setAddChildOpen(true); }} />
-        </div>
-      </div>
-    );
-  }
-
-  const QUICK_CARDS = [
-    { icon: Brain, title: "SDQ Assessment", desc: "25-item standardized behavioral screening", badge: "Clinical", color: "59,147,245", to: "/sdq" },
-    { icon: Camera, title: "Vision Analysis", desc: "AI-powered behavioral detection through custom YOLOv8 model", badge: "AI Model", color: "168,85,247", to: "/vision" },
-    { icon: TrendingUp, title: "Health Tracker", desc: "Milestones, growth charts, and sleep logging", badge: "Track", color: "20,184,166", to: "/health" },
-    { icon: FileText, title: "Document Library", desc: "Clinical document vault with PDF export", badge: "Storage", color: "245,176,65", to: "/documents" },
-  ];
-
-  if (statsLoading && (patients || []).length > 0) {
+  if (patientsLoading || (statsLoading && (patients || []).length > 0)) {
     return (
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-pulse">
         <FloatingOrbs />
@@ -539,6 +506,39 @@ function DashboardPage() {
       </div>
     );
   }
+
+  if (!activePatient) {
+    return (
+      <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <FloatingOrbs />
+        <div ref={headerRef}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <div className="w-1 h-6 rounded-full bg-gradient-to-b from-blue-500 to-cyan-400" />
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ color: "var(--text-primary)" }}>
+                  Dashboard
+                </h1>
+              </div>
+              <p className="text-sm ml-4" style={{ color: "var(--text-secondary)" }}>
+                Welcome back, {user?.name || "User"}
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-2xl mx-auto mt-12 border rounded-3xl p-6" style={{ background: "var(--card-bg)", borderColor: "var(--card-border)" }}>
+          <EmptyState onOpenModal={() => { setEditingChild(null); setAddChildOpen(true); }} />
+        </div>
+      </div>
+    );
+  }
+
+  const QUICK_CARDS = [
+    { icon: Brain, title: "SDQ Assessment", desc: "25-item standardized behavioral screening", badge: "Clinical", color: "59,147,245", to: "/sdq" },
+    { icon: Camera, title: "Vision Analysis", desc: "AI-powered behavioral detection through custom YOLOv8 model", badge: "AI Model", color: "168,85,247", to: "/vision" },
+    { icon: TrendingUp, title: "Health Tracker", desc: "Milestones, growth charts, and sleep logging", badge: "Track", color: "20,184,166", to: "/health" },
+    { icon: FileText, title: "Document Library", desc: "Clinical document vault with PDF export", badge: "Storage", color: "245,176,65", to: "/documents" },
+  ];
 
   return (
     <div ref={containerRef} className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">

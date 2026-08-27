@@ -44,7 +44,7 @@ const SCALE_META = {
 
 const SDQ_OPTIONS = ["Not True", "Somewhat True", "Certainly True"];
 const QUESTIONS_PER_PAGE = 5;
-const REVERSED = [1, 2, 3, 4, 5, 6, 8, 9, 12, 13];
+const REVERSED = [6, 8, 9, 12, 13];
 
 function calculateScores(answers) {
   const scales = { emotional: 0, conduct: 0, hyperactivity: 0, peer: 0, prosocial: 0 };

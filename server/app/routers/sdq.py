@@ -49,7 +49,7 @@ async def submit_sdq():
     ai_conf = latest_vision.get("risk_score", 0.0) if latest_vision else 0.0
     sdq_score = result["total_difficulties_score"]
 
-    priority = "high" if (sdq_score >= 8 or ai_conf > 80.0) else "normal"
+    priority = "high" if (sdq_score >= 20 or ai_conf > 80.0) else "normal"
 
     doc = {
         "child_id": child_id,
